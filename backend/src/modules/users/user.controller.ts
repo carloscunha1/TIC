@@ -6,10 +6,20 @@ import { listUsersQuerySchema } from './user.list.schemas.js';
 import { UserListService } from './user.list.service.js';
 import { userIdParamSchema, updateUserSchema } from './user.update.schemas.js';
 import { UserUpdateService } from './user.update.service.js';
+import { UserStatusService } from './user.status.service.js';
+import { userStatusSchema } from './user.status.schemas.js';
 
 const userService = new UserService(new PrismaUserRepository());
 const userListService = new UserListService(new PrismaUserRepository());
 const userUpdateService = new UserUpdateService(new PrismaUserRepository());
+const userStatusService = new UserStatusService(new PrismaUserRepository());
+
+export async function updateUserStatus(request: Request, response: Response): Promise<void> {
+  const { id } = userIdParamSchema.parse(request.params);
+  const { status } = userStatusSchema.parse(request.body);
+  const user = await userStatusService.update(id, status);
+  response.status(200).json({ success: true, data: { user }, requestId: response.locals.requestId });
+}
 
 export async function getUser(request: Request, response: Response): Promise<void> {
   const { id } = userIdParamSchema.parse(request.params);

@@ -96,6 +96,21 @@ export async function updateUser(id: string, payload: Pick<UserListItem, 'name' 
   return body.data.user;
 }
 
+export async function updateUserStatus(id: string, status: UserListItem['status']): Promise<UserListItem> {
+  const response = await fetch(apiUrl(`/users/${id}/status`), {
+    body: JSON.stringify({ status }),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'PATCH',
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível atualizar o status do usuário.');
+  }
+  const body = (await response.json()) as { data: { user: UserListItem } };
+  return body.data.user;
+}
+
 export async function listUsers(params: UserListParams): Promise<UserListResponse> {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
   if (params.search) query.set('search', params.search);

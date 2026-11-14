@@ -29,6 +29,21 @@ export interface UserQueryRepository extends UserRepository {
 
 export interface UserUpdateRepository extends UserQueryRepository {
   update(id: string, input: { name: string; role: UserRole }): Promise<User>;
+  updateStatus(id: string, status: UserStatus): Promise<User>;
+}
+
+export class LastActiveAdminError extends Error {
+  constructor() {
+    super('The last active administrator cannot be deactivated.');
+    this.name = 'LastActiveAdminError';
+  }
+}
+
+export class UserNotFoundError extends Error {
+  constructor() {
+    super('User not found.');
+    this.name = 'UserNotFoundError';
+  }
 }
 
 export class PrismaUserRepository implements UserCreationRepository, UserUpdateRepository {
@@ -46,6 +61,18 @@ export class PrismaUserRepository implements UserCreationRepository, UserUpdateR
 
   update(id: string, input: { name: string; role: UserRole }): Promise<User> {
     return prisma.user.update({ where: { id }, data: input });
+  }
+
+  updateStatus(id: string, status: UserStatus): Promise<User> {
+    return prisma.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({ where: { id } });
+      if (!user) throw new UserNotFoundError();
+      if (status === 'INACTIVE' && user.role === 'ADMIN' && user.status === 'ACTIVE') {
+        const activeAdministrators = await transaction.user.count({ where: { role: 'ADMIN', status: 'ACTIVE' } });
+        if (activeAdministrators <= 1) throw new LastActiveAdminError();
+      }
+      return transaction.user.update({ where: { id }, data: { status } });
+    });
   }
 
   async list(filters: UserListFilters): Promise<UserListResult> {
