@@ -74,6 +74,28 @@ export type UserListResponse = {
   totalPages: number;
 };
 
+export async function getUser(id: string): Promise<UserListItem> {
+  const response = await fetch(apiUrl(`/users/${id}`), { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível carregar o usuário.');
+  const body = (await response.json()) as { data: { user: UserListItem } };
+  return body.data.user;
+}
+
+export async function updateUser(id: string, payload: Pick<UserListItem, 'name' | 'role'>): Promise<UserListItem> {
+  const response = await fetch(apiUrl(`/users/${id}`), {
+    body: JSON.stringify(payload),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'PATCH',
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível atualizar o usuário.');
+  }
+  const body = (await response.json()) as { data: { user: UserListItem } };
+  return body.data.user;
+}
+
 export async function listUsers(params: UserListParams): Promise<UserListResponse> {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
   if (params.search) query.set('search', params.search);

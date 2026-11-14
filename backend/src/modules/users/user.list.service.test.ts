@@ -15,7 +15,7 @@ const users: User[] = [{
 }];
 
 function repository(): UserQueryRepository {
-  return { findByEmail: jest.fn(), list: jest.fn(async () => ({ total: users.length, users })) };
+  return { findByEmail: jest.fn(), findById: jest.fn(), list: jest.fn(async () => ({ total: users.length, users })) };
 }
 
 describe('UserListService.list', () => {

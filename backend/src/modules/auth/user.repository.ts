@@ -23,16 +23,29 @@ export type UserListResult = {
 };
 
 export interface UserQueryRepository extends UserRepository {
+  findById(id: string): Promise<User | null>;
   list(filters: UserListFilters): Promise<UserListResult>;
 }
 
-export class PrismaUserRepository implements UserCreationRepository, UserQueryRepository {
+export interface UserUpdateRepository extends UserQueryRepository {
+  update(id: string, input: { name: string; role: UserRole }): Promise<User>;
+}
+
+export class PrismaUserRepository implements UserCreationRepository, UserUpdateRepository {
   findByEmail(email: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { email } });
   }
 
   create(input: { name: string; email: string; passwordHash: string; role: UserRole }): Promise<User> {
     return prisma.user.create({ data: input });
+  }
+
+  findById(id: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { id } });
+  }
+
+  update(id: string, input: { name: string; role: UserRole }): Promise<User> {
+    return prisma.user.update({ where: { id }, data: input });
   }
 
   async list(filters: UserListFilters): Promise<UserListResult> {
