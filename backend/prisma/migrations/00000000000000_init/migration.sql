@@ -1,0 +1,2 @@
+-- Initial migration placeholder.
+-- Domain tables will be introduced by the authentication and module tasks.
