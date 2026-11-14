@@ -1,17 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
-
-class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly code: string,
-    message: string,
-    public readonly details: Record<string, unknown> = {},
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+import { ZodError } from 'zod';
+import { authRouter } from './modules/auth/auth.routes.js';
+import { ApiError } from './shared/http/api-error.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
   const receivedRequestId = request.header('x-request-id');
@@ -47,14 +38,15 @@ const notFoundHandler: RequestHandler = (request, _response, next) => {
 
 const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   const isApiError = error instanceof ApiError;
-  const statusCode = isApiError ? error.statusCode : 500;
-  const code = isApiError ? error.code : 'INTERNAL_SERVER_ERROR';
-  const message = isApiError ? error.message : 'Erro interno do servidor.';
-  const details = isApiError ? error.details : {};
+  const isValidationError = error instanceof ZodError;
+  const statusCode = isApiError ? error.statusCode : isValidationError ? 400 : 500;
+  const code = isApiError ? error.code : isValidationError ? 'VALIDATION_ERROR' : 'INTERNAL_SERVER_ERROR';
+  const message = isApiError ? error.message : isValidationError ? 'Dados inválidos.' : 'Erro interno do servidor.';
+  const details = isApiError ? error.details : isValidationError ? error.flatten().fieldErrors : {};
 
   logStructured('request.error', {
     code,
-    message: isApiError ? message : 'Unhandled application error',
+    message: isApiError || isValidationError ? message : 'Unhandled application error',
     requestId: response.locals.requestId,
     statusCode,
   });
@@ -83,6 +75,7 @@ export const app = express();
 
 app.use(requestContext);
 app.use(express.json());
+app.use('/api/v1/auth', authRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({
