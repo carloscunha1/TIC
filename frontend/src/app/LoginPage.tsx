@@ -4,7 +4,7 @@ import { LockKeyhole, Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { login } from '@/lib/api';
+import { getCurrentSession, login } from '@/lib/api';
 
 const loginFormSchema = z.object({
   email: z.string().email('Informe um e-mail válido.'),
@@ -19,7 +19,9 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['current-session'] });
+      await queryClient.cancelQueries({ queryKey: ['current-session'] });
+      const session = await getCurrentSession();
+      queryClient.setQueryData(['current-session'], session);
       navigate('/', { replace: true });
     },
   });
