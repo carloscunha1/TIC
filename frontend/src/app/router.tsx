@@ -5,11 +5,16 @@ import { CreateUserPage } from '@/app/CreateUserPage';
 import { EditUserPage } from '@/app/EditUserPage';
 import { LoginPage } from '@/app/LoginPage';
 import { UsersPage } from '@/app/UsersPage';
+import { ResetPasswordPage } from '@/app/ResetPasswordPage';
 
 export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/redefinir-senha',
+    element: <ResetPasswordPage />,
   },
   {
     element: <ProtectedLayout />,

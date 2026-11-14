@@ -111,6 +111,28 @@ export async function updateUserStatus(id: string, status: UserListItem['status'
   return body.data.user;
 }
 
+export async function issuePasswordReset(id: string): Promise<{ token: string; expiresAt: string }> {
+  const response = await fetch(apiUrl(`/users/${id}/password-reset`), { credentials: 'include', method: 'POST' });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível gerar a credencial temporária.');
+  }
+  const body = (await response.json()) as { data: { token: string; expiresAt: string } };
+  return body.data;
+}
+
+export async function completePasswordReset(payload: { token: string; password: string }): Promise<void> {
+  const response = await fetch(apiUrl('/auth/password-reset/complete'), {
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível definir a nova senha.');
+  }
+}
+
 export async function listUsers(params: UserListParams): Promise<UserListResponse> {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
   if (params.search) query.set('search', params.search);

@@ -6,12 +6,15 @@ import { sessionService } from './auth.middleware.js';
 import { getPermissionsForRole } from './permissions.js';
 import { PrismaSessionRepository } from './session.repository.js';
 import { PrismaUserRepository } from './user.repository.js';
+import { passwordResetSchema } from '../users/password-reset.schemas.js';
+import { PasswordResetService } from '../users/password-reset.service.js';
 
 const authService = new AuthService({
   jwtSecret: process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? '' : 'development-only-secret'),
   sessionRepository: new PrismaSessionRepository(),
   userRepository: new PrismaUserRepository(),
 });
+const passwordResetService = new PasswordResetService(new PrismaUserRepository());
 
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
   throw new Error('JWT_SECRET must be configured in production.');
@@ -49,5 +52,11 @@ export async function currentSession(_request: Request, response: Response): Pro
 export async function logout(request: Request, response: Response): Promise<void> {
   await sessionService.logout(readSessionCookie(request.header('cookie')));
   clearSessionCookie(response);
+  response.status(204).send();
+}
+
+export async function completePasswordReset(request: Request, response: Response): Promise<void> {
+  const input = passwordResetSchema.parse(request.body);
+  await passwordResetService.complete(input.token, input.password);
   response.status(204).send();
 }

@@ -5,6 +5,14 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
 }
 
+export type PasswordResetData = { tokenHash: string; expiresAt: Date };
+
+export interface PasswordResetRepository extends UserRepository {
+  findById(id: string): Promise<User | null>;
+  createPasswordReset(id: string, data: PasswordResetData): Promise<User>;
+  completePasswordReset(tokenHash: string, passwordHash: string, now: Date): Promise<User>;
+}
+
 export interface UserCreationRepository extends UserRepository {
   create(input: { name: string; email: string; passwordHash: string; role: UserRole }): Promise<User>;
 }
@@ -46,7 +54,7 @@ export class UserNotFoundError extends Error {
   }
 }
 
-export class PrismaUserRepository implements UserCreationRepository, UserUpdateRepository {
+export class PrismaUserRepository implements UserCreationRepository, UserUpdateRepository, PasswordResetRepository {
   findByEmail(email: string): Promise<User | null> {
     return prisma.user.findUnique({ where: { email } });
   }
@@ -72,6 +80,26 @@ export class PrismaUserRepository implements UserCreationRepository, UserUpdateR
         if (activeAdministrators <= 1) throw new LastActiveAdminError();
       }
       return transaction.user.update({ where: { id }, data: { status } });
+    });
+  }
+
+  createPasswordReset(id: string, data: PasswordResetData): Promise<User> {
+    return prisma.user.update({
+      where: { id },
+      data: { mustChangePassword: true, resetTokenExpiresAt: data.expiresAt, resetTokenHash: data.tokenHash },
+    });
+  }
+
+  completePasswordReset(tokenHash: string, passwordHash: string, now: Date): Promise<User> {
+    return prisma.$transaction(async (transaction) => {
+      const user = await transaction.user.findFirst({ where: { resetTokenHash: tokenHash, resetTokenExpiresAt: { gt: now }, status: 'ACTIVE' } });
+      if (!user) throw new UserNotFoundError();
+      const updatedUser = await transaction.user.update({
+        where: { id: user.id },
+        data: { mustChangePassword: false, passwordHash, resetTokenExpiresAt: null, resetTokenHash: null },
+      });
+      await transaction.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: now } });
+      return updatedUser;
     });
   }
 

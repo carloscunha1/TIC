@@ -8,11 +8,19 @@ import { userIdParamSchema, updateUserSchema } from './user.update.schemas.js';
 import { UserUpdateService } from './user.update.service.js';
 import { UserStatusService } from './user.status.service.js';
 import { userStatusSchema } from './user.status.schemas.js';
+import { PasswordResetService } from './password-reset.service.js';
 
 const userService = new UserService(new PrismaUserRepository());
 const userListService = new UserListService(new PrismaUserRepository());
 const userUpdateService = new UserUpdateService(new PrismaUserRepository());
 const userStatusService = new UserStatusService(new PrismaUserRepository());
+const passwordResetService = new PasswordResetService(new PrismaUserRepository());
+
+export async function issuePasswordReset(request: Request, response: Response): Promise<void> {
+  const { id } = userIdParamSchema.parse(request.params);
+  const result = await passwordResetService.issue(id);
+  response.status(201).json({ success: true, data: result, requestId: response.locals.requestId });
+}
 
 export async function updateUserStatus(request: Request, response: Response): Promise<void> {
   const { id } = userIdParamSchema.parse(request.params);
