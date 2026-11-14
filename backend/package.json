@@ -4,17 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node --env-file=../.env ../node_modules/.bin/tsx watch src/server.ts",
+    "start": "node --env-file=../.env dist/server.js",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "prisma:generate": "node --env-file=../.env ../node_modules/.bin/prisma generate",
     "prisma:migrate": "node --env-file=../.env ../node_modules/.bin/prisma migrate dev --name init",
     "prisma:deploy": "node --env-file=../.env ../node_modules/.bin/prisma migrate deploy",
-    "db:check": "node --env-file=../.env --import tsx src/infrastructure/database/check-connection.ts"
+    "db:check": "node --env-file=../.env --import tsx src/infrastructure/database/check-connection.ts",
+    "db:bootstrap": "node --env-file=../.env --import tsx src/infrastructure/database/run-bootstrap.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.2",
     "express": "^5.1.0"
   },
   "devDependencies": {

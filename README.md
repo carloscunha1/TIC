@@ -47,6 +47,12 @@ npm run db:migrate
 npm run db:check
 ```
 
+Ao iniciar o backend, as migrations pendentes são aplicadas automaticamente.
+O administrador inicial só é criado quando `ALLOW_INITIAL_ADMIN_SEED=true` e
+as variáveis `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL` e
+`INITIAL_ADMIN_PASSWORD` estão preenchidas. Usuários existentes nunca são
+alterados.
+
 Para parar o banco:
 
 ```bash
