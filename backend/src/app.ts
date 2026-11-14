@@ -3,6 +3,7 @@ import express, { type ErrorRequestHandler, type RequestHandler } from 'express'
 import { ZodError } from 'zod';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { userRouter } from './modules/users/user.routes.js';
+import { categoryRouter } from './modules/categories/category.routes.js';
 import { ApiError } from './shared/http/api-error.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
@@ -96,6 +97,7 @@ app.use(requestContext);
 app.use(express.json());
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/categories', categoryRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({
