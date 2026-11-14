@@ -1,13 +1,22 @@
 import { app } from './app.js';
+import { runDatabaseBootstrap } from './infrastructure/database/bootstrap.js';
 
 const port = Number(process.env.PORT ?? 3333);
-const server = app.listen(port, () => {
-  console.log(`TIC backend listening on port ${port}`);
-});
+let server: ReturnType<typeof app.listen>;
+
+try {
+  await runDatabaseBootstrap();
+  server = app.listen(port, () => {
+    console.log(`TIC backend listening on port ${port}`);
+  });
+} catch {
+  console.error(JSON.stringify({ event: 'server.startup_failed', level: 'error', timestamp: new Date().toISOString() }));
+  process.exitCode = 1;
+}
 
 function shutDown(signal: string): void {
   console.log(JSON.stringify({ event: 'server.shutdown', level: 'info', signal, timestamp: new Date().toISOString() }));
-  server.close(() => process.exit(0));
+  server?.close(() => process.exit(0));
 }
 
 process.once('SIGINT', () => shutDown('SIGINT'));
