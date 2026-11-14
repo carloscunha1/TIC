@@ -95,3 +95,11 @@ export async function login(payload: LoginPayload): Promise<void> {
     throw new Error(error?.message ?? 'Não foi possível autenticar.');
   }
 }
+
+export async function logout(): Promise<void> {
+  const response = await fetch('/api/v1/auth/logout', {
+    credentials: 'include',
+    method: 'POST',
+  });
+  if (!response.ok) throw new Error('Não foi possível encerrar a sessão.');
+}
