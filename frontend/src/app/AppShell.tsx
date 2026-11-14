@@ -10,10 +10,13 @@ import {
   Sun,
   Users,
 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/auth-context';
 import { ThemeProvider } from '@/app/ThemeProvider';
 import { useTheme } from '@/app/theme-context';
+import { logout } from '@/lib/api';
 
 const navigation = [
   { label: 'Dashboard', icon: Home, permission: 'dashboard.view', to: '/' },
@@ -28,7 +31,16 @@ const navigation = [
 
 function ShellContent() {
   const { theme, toggleTheme } = useTheme();
-  const { hasPermission } = useAuth();
+  const { hasPermission, session } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['current-session'] });
+      navigate('/login', { replace: true });
+    },
+  });
   const visibleNavigation = navigation.filter((item) => hasPermission(item.permission));
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors dark:bg-slate-950 dark:text-slate-50">
@@ -72,7 +84,12 @@ function ShellContent() {
             <button onClick={toggleTheme} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'}>
               {theme === 'light' ? <Moon size={19} /> : <Sun size={19} />}
             </button>
-            <div className="hidden h-8 w-8 items-center justify-center rounded-full bg-[#FFD100] text-sm font-bold text-[#0045B5] sm:flex" aria-label="Usuário atual">A</div>
+            <div className="flex items-center gap-3">
+              <div className="hidden h-8 w-8 items-center justify-center rounded-full bg-[#FFD100] text-sm font-bold text-[#0045B5] sm:flex" aria-label={`Usuário atual: ${session?.name}`}>{session?.name.slice(0, 1).toUpperCase()}</div>
+              <button type="button" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending} className="text-sm font-medium text-slate-600 hover:text-[#0045B5] disabled:opacity-50 dark:text-slate-300 dark:hover:text-[#FFD100]">
+                {logoutMutation.isPending ? 'Saindo…' : 'Sair'}
+              </button>
+            </div>
           </div>
         </div>
       </header>

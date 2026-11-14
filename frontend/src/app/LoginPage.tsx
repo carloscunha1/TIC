@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LockKeyhole, Mail } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -15,9 +15,13 @@ type LoginForm = z.infer<typeof loginFormSchema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: () => navigate('/'),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['current-session'] });
+      navigate('/', { replace: true });
+    },
   });
   const { formState: { errors }, handleSubmit, register } = useForm<LoginForm>({ resolver: zodResolver(loginFormSchema) });
 
