@@ -1,0 +1,18 @@
+{
+  "name": "tic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de gestão da Conveniência do Posto Paulo VI",
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build:backend": "npm run build --workspace backend",
+    "build:frontend": "npm run build --workspace frontend",
+    "typecheck:backend": "npm run typecheck --workspace backend",
+    "typecheck:frontend": "npm run typecheck --workspace frontend"
+  },
+  "engines": { "node": "24.15.0" }
+}
