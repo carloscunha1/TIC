@@ -17,6 +17,7 @@
     "typecheck:frontend": "npm run typecheck --workspace frontend",
     "lint:frontend": "npm run lint --workspace frontend",
     "test:backend": "npm test --workspace backend",
+    "test:frontend": "npm test --workspace frontend",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",
