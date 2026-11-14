@@ -9,8 +9,14 @@ try {
   server = app.listen(port, () => {
     console.log(`TIC backend listening on port ${port}`);
   });
-} catch {
-  console.error(JSON.stringify({ event: 'server.startup_failed', level: 'error', timestamp: new Date().toISOString() }));
+} catch (error) {
+  console.error(JSON.stringify({
+    code: 'DATABASE_BOOTSTRAP_FAILED',
+    event: 'server.startup_failed',
+    level: 'error',
+    message: error instanceof Error ? error.message : 'Database bootstrap failed.',
+    timestamp: new Date().toISOString(),
+  }));
   process.exitCode = 1;
 }
 
