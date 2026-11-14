@@ -7,6 +7,7 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
@@ -14,6 +15,7 @@
     "build:frontend": "npm run build --workspace frontend",
     "typecheck:backend": "npm run typecheck --workspace backend",
     "typecheck:frontend": "npm run typecheck --workspace frontend",
+    "lint:frontend": "npm run lint --workspace frontend",
     "test:backend": "npm test --workspace backend",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
