@@ -18,6 +18,11 @@ enum UserStatus {
   INACTIVE
 }
 
+enum AuditActorType {
+  USER
+  SYSTEM
+}
+
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   name         String     @db.VarChar(120)
@@ -31,9 +36,29 @@ model User {
   resetTokenExpiresAt DateTime? @map("reset_token_expires_at") @db.Timestamptz(3)
   mustChangePassword Boolean @default(false) @map("must_change_password")
   sessions     Session[]
+  auditLogs    AuditLog[]
 
   @@index([status])
   @@map("users")
+}
+
+model AuditLog {
+  id           String        @id @default(uuid()) @db.Uuid
+  actorType    AuditActorType @map("actor_type")
+  actorUserId  String?       @map("actor_user_id") @db.Uuid
+  action       String        @db.VarChar(100)
+  entity       String        @db.VarChar(100)
+  entityId     String?       @map("entity_id") @db.VarChar(100)
+  beforeData   Json?         @map("before_data")
+  afterData    Json?         @map("after_data")
+  ipAddress    String?       @map("ip_address") @db.VarChar(64)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  actorUser    User?         @relation(fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([actorUserId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 model Session {
