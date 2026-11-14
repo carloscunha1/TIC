@@ -38,7 +38,7 @@ As configurações locais devem ser baseadas em `.env.example`.
 
 ## Banco local
 
-Com Docker em execução, copie `.env.example` para `.env` e use:
+Com Docker em execução, copie `.env.example` para `.env`. Depois use:
 
 ```bash
 npm run db:up

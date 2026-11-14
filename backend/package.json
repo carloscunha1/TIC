@@ -8,10 +8,10 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init",
-    "prisma:deploy": "prisma migrate deploy",
-    "db:check": "tsx src/infrastructure/database/check-connection.ts"
+    "prisma:generate": "node --env-file=../.env ../node_modules/.bin/prisma generate",
+    "prisma:migrate": "node --env-file=../.env ../node_modules/.bin/prisma migrate dev --name init",
+    "prisma:deploy": "node --env-file=../.env ../node_modules/.bin/prisma migrate deploy",
+    "db:check": "node --env-file=../.env --import tsx src/infrastructure/database/check-connection.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
