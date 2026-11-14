@@ -3,6 +3,7 @@ import { FoundationPage, NotFoundPage } from '@/app/pages';
 import { ProtectedLayout } from '@/app/ProtectedLayout';
 import { CreateUserPage } from '@/app/CreateUserPage';
 import { LoginPage } from '@/app/LoginPage';
+import { UsersPage } from '@/app/UsersPage';
 
 export const router = createBrowserRouter([
   {
@@ -12,6 +13,10 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedLayout />,
     children: [
+      {
+        path: '/usuarios',
+        element: <UsersPage />,
+      },
       {
         path: '/usuarios/novo',
         element: <CreateUserPage />,

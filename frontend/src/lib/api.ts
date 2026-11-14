@@ -43,6 +43,45 @@ export async function createUser(payload: CreateUserPayload): Promise<void> {
   }
 }
 
+export type UserListItem = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'OPERATOR' | 'VIEWER';
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+};
+
+export type UserListParams = {
+  page: number;
+  pageSize: number;
+  search?: string;
+  role?: UserListItem['role'];
+  status?: UserListItem['status'];
+};
+
+export type UserListResponse = {
+  users: UserListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export async function listUsers(params: UserListParams): Promise<UserListResponse> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.search) query.set('search', params.search);
+  if (params.role) query.set('role', params.role);
+  if (params.status) query.set('status', params.status);
+  const response = await fetch(`/api/v1/users?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível consultar os usuários.');
+  }
+  const body = (await response.json()) as { data: UserListResponse };
+  return body.data;
+}
+
 export async function login(payload: LoginPayload): Promise<void> {
   const response = await fetch('/api/v1/auth/login', {
     body: JSON.stringify(payload),
