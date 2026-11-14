@@ -74,6 +74,24 @@ function logStructured(event: string, context: Record<string, unknown>): void {
 
 export const app = express();
 
+const frontendOrigin = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
+
+app.use((request, response, next) => {
+  const origin = request.header('origin');
+  if (origin === frontendOrigin) {
+    response.setHeader('Access-Control-Allow-Credentials', 'true');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Request-Id');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    response.setHeader('Access-Control-Allow-Origin', origin);
+    response.setHeader('Vary', 'Origin');
+  }
+  if (request.method === 'OPTIONS') {
+    response.status(204).send();
+    return;
+  }
+  next();
+});
+
 app.use(requestContext);
 app.use(express.json());
 app.use('/api/v1/auth', authRouter);

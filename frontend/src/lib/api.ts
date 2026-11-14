@@ -1,5 +1,11 @@
 export type LoginPayload = { email: string; password: string };
 
+const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
+
+function apiUrl(path: string): string {
+  return `${apiBaseUrl}${path}`;
+}
+
 export type ApiErrorResponse = {
   success: false;
   message: string;
@@ -17,7 +23,7 @@ export type CurrentSession = {
 };
 
 export async function getCurrentSession(): Promise<CurrentSession> {
-  const response = await fetch('/api/v1/auth/session', { credentials: 'include' });
+  const response = await fetch(apiUrl('/auth/session'), { credentials: 'include' });
   if (!response.ok) throw new Error('UNAUTHENTICATED');
   const body = (await response.json()) as { data: CurrentSession };
   return body.data;
@@ -31,7 +37,7 @@ export type CreateUserPayload = {
 };
 
 export async function createUser(payload: CreateUserPayload): Promise<void> {
-  const response = await fetch('/api/v1/users', {
+  const response = await fetch(apiUrl('/users'), {
     body: JSON.stringify(payload),
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -73,7 +79,7 @@ export async function listUsers(params: UserListParams): Promise<UserListRespons
   if (params.search) query.set('search', params.search);
   if (params.role) query.set('role', params.role);
   if (params.status) query.set('status', params.status);
-  const response = await fetch(`/api/v1/users?${query.toString()}`, { credentials: 'include' });
+  const response = await fetch(`${apiUrl('/users')}?${query.toString()}`, { credentials: 'include' });
   if (!response.ok) {
     const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
     throw new Error(error?.message ?? 'Não foi possível consultar os usuários.');
@@ -83,7 +89,7 @@ export async function listUsers(params: UserListParams): Promise<UserListRespons
 }
 
 export async function login(payload: LoginPayload): Promise<void> {
-  const response = await fetch('/api/v1/auth/login', {
+  const response = await fetch(apiUrl('/auth/login'), {
     body: JSON.stringify(payload),
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -97,7 +103,7 @@ export async function login(payload: LoginPayload): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  const response = await fetch('/api/v1/auth/logout', {
+  const response = await fetch(apiUrl('/auth/logout'), {
     credentials: 'include',
     method: 'POST',
   });
