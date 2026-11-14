@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { FoundationPage, NotFoundPage } from '@/app/pages';
 import { ProtectedLayout } from '@/app/ProtectedLayout';
 import { CreateUserPage } from '@/app/CreateUserPage';
+import { EditUserPage } from '@/app/EditUserPage';
 import { LoginPage } from '@/app/LoginPage';
 import { UsersPage } from '@/app/UsersPage';
 
@@ -16,6 +17,10 @@ export const router = createBrowserRouter([
       {
         path: '/usuarios',
         element: <UsersPage />,
+      },
+      {
+        path: '/usuarios/:id/editar',
+        element: <EditUserPage />,
       },
       {
         path: '/usuarios/novo',
