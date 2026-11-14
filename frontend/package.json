@@ -5,14 +5,32 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "lint": "eslint .",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false"
   },
-  "dependencies": { "react": "^19.1.1", "react-dom": "^19.1.1" },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.5",
+    "tailwind-merge": "^3.3.1"
+  },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "^4.1.14",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^15.14.0",
+    "tailwindcss": "^4.1.14",
+    "typescript-eslint": "^8.46.2",
     "typescript": "^5.9.3",
     "vite": "^7.1.7"
   }
