@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { ApiError } from '../../shared/http/api-error.js';
 import type { SessionRepository } from './session.repository.js';
+import type { UserRole } from '@prisma/client';
 
 const INACTIVITY_SECONDS = 30 * 60;
 
@@ -15,7 +16,7 @@ export type AuthenticatedSession = {
   userId: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   expiresAt: Date;
   renewedToken: string;
 };
