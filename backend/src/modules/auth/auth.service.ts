@@ -32,6 +32,9 @@ export class AuthService {
     if (!user || user.status !== 'ACTIVE' || !passwordMatches) {
       throw new ApiError(401, 'INVALID_CREDENTIALS', 'E-mail ou senha inválidos.');
     }
+    if (user.mustChangePassword) {
+      throw new ApiError(403, 'PASSWORD_RESET_REQUIRED', 'É necessário definir uma nova senha antes de entrar.');
+    }
 
     const expiresAt = new Date(Date.now() + SESSION_DURATION_SECONDS * 1000);
     const sessionId = randomUUID();
