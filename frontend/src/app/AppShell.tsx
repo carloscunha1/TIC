@@ -17,6 +17,7 @@ import { useAuth } from '@/app/auth-context';
 import { ThemeProvider } from '@/app/ThemeProvider';
 import { useTheme } from '@/app/theme-context';
 import { logout } from '@/lib/api';
+import type { CurrentSession } from '@/lib/api';
 
 const navigation = [
   { label: 'Dashboard', icon: Home, permission: 'dashboard.view', to: '/' },
@@ -36,7 +37,9 @@ function ShellContent() {
   const queryClient = useQueryClient();
   const logoutMutation = useMutation({
     mutationFn: logout,
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.cancelQueries({ queryKey: ['current-session'] });
+      queryClient.setQueryData<CurrentSession | null>(['current-session'], null);
       queryClient.removeQueries({ queryKey: ['current-session'] });
       navigate('/login', { replace: true });
     },
