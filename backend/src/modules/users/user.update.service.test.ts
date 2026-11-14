@@ -21,6 +21,7 @@ function repository(): UserUpdateRepository {
     findById: jest.fn(async () => user),
     list: jest.fn(),
     update: jest.fn(async (_id, input) => ({ ...user, ...input })),
+    updateStatus: jest.fn(),
   };
 }
 
