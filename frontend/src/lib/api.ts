@@ -23,6 +23,26 @@ export async function getCurrentSession(): Promise<CurrentSession> {
   return body.data;
 }
 
+export type CreateUserPayload = {
+  email: string;
+  name: string;
+  password: string;
+  role: 'ADMIN' | 'OPERATOR' | 'VIEWER';
+};
+
+export async function createUser(payload: CreateUserPayload): Promise<void> {
+  const response = await fetch('/api/v1/users', {
+    body: JSON.stringify(payload),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível criar o usuário.');
+  }
+}
+
 export async function login(payload: LoginPayload): Promise<void> {
   const response = await fetch('/api/v1/auth/login', {
     body: JSON.stringify(payload),
