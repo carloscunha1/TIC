@@ -6,6 +6,19 @@ function apiUrl(path: string): string {
   return `${apiBaseUrl}${path}`;
 }
 
+export async function createCategory(payload: { name: string; description?: string }): Promise<void> {
+  const response = await fetch(apiUrl('/categories'), {
+    body: JSON.stringify(payload),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível criar a categoria.');
+  }
+}
+
 export type ApiErrorResponse = {
   success: false;
   message: string;

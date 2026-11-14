@@ -6,6 +6,7 @@ import { EditUserPage } from '@/app/EditUserPage';
 import { LoginPage } from '@/app/LoginPage';
 import { UsersPage } from '@/app/UsersPage';
 import { ResetPasswordPage } from '@/app/ResetPasswordPage';
+import { CreateCategoryPage } from '@/app/CreateCategoryPage';
 
 export const router = createBrowserRouter([
   {
@@ -19,6 +20,10 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedLayout />,
     children: [
+      {
+        path: '/categorias/nova',
+        element: <CreateCategoryPage />,
+      },
       {
         path: '/usuarios',
         element: <UsersPage />,
