@@ -11,21 +11,24 @@ import {
   Users,
 } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { useAuth } from '@/app/auth-context';
 import { ThemeProvider } from '@/app/ThemeProvider';
 import { useTheme } from '@/app/theme-context';
 
 const navigation = [
-  { label: 'Dashboard', icon: Home, to: '/' },
-  { label: 'Produtos', icon: Package, to: '/produtos' },
-  { label: 'Estoque', icon: Boxes, to: '/estoque' },
-  { label: 'Vendas', icon: ShoppingCart, to: '/vendas' },
-  { label: 'Clientes', icon: Users, to: '/clientes' },
-  { label: 'Relatórios', icon: ChartNoAxesCombined, to: '/relatorios' },
-  { label: 'Configurações', icon: Settings, to: '/configuracoes' },
+  { label: 'Dashboard', icon: Home, permission: 'dashboard.view', to: '/' },
+  { label: 'Produtos', icon: Package, permission: 'products.read', to: '/produtos' },
+  { label: 'Estoque', icon: Boxes, permission: 'stock.manage', to: '/estoque' },
+  { label: 'Vendas', icon: ShoppingCart, permission: 'sales.manage', to: '/vendas' },
+  { label: 'Clientes', icon: Users, permission: 'customers.manage', to: '/clientes' },
+  { label: 'Relatórios', icon: ChartNoAxesCombined, permission: 'reports.read', to: '/relatorios' },
+  { label: 'Configurações', icon: Settings, permission: 'settings.manage', to: '/configuracoes' },
 ];
 
 function ShellContent() {
   const { theme, toggleTheme } = useTheme();
+  const { hasPermission } = useAuth();
+  const visibleNavigation = navigation.filter((item) => hasPermission(item.permission));
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors dark:bg-slate-950 dark:text-slate-50">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-[#0045B5] text-white shadow-xl lg:flex">
@@ -37,7 +40,7 @@ function ShellContent() {
           </div>
         </div>
         <nav aria-label="Navegação principal" className="flex-1 space-y-1 px-3 py-6">
-          {navigation.map(({ label, icon: Icon, to }) => (
+          {visibleNavigation.map(({ label, icon: Icon, to }) => (
             <NavLink
               key={label}
               to={to}
@@ -78,7 +81,7 @@ function ShellContent() {
       </main>
 
       <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white/95 px-1 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
-        {navigation.slice(0, 5).map(({ label, icon: Icon, to }) => (
+        {visibleNavigation.slice(0, 5).map(({ label, icon: Icon, to }) => (
           <NavLink key={label} to={to} className={({ isActive }) => `flex flex-col items-center gap-1 rounded-md py-1 text-[11px] ${isActive ? 'font-semibold text-[#0045B5] dark:text-[#FFD100]' : 'text-slate-500'}`}>
             <Icon aria-hidden="true" size={18} />
             <span>{label}</span>

@@ -3,6 +3,7 @@ import { loginSchema } from './auth.schemas.js';
 import { AuthService } from './auth.service.js';
 import { clearSessionCookie, readSessionCookie, setSessionCookie } from './auth.cookies.js';
 import { sessionService } from './auth.middleware.js';
+import { getPermissionsForRole } from './permissions.js';
 import { PrismaSessionRepository } from './session.repository.js';
 import { PrismaUserRepository } from './user.repository.js';
 
@@ -37,6 +38,7 @@ export async function currentSession(_request: Request, response: Response): Pro
       email: session.email,
       expiresAt: session.expiresAt.toISOString(),
       name: session.name,
+      permissions: getPermissionsForRole(session.role),
       role: session.role,
       userId: session.userId,
     },

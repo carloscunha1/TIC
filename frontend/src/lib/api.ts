@@ -7,6 +7,22 @@ export type ApiErrorResponse = {
   details: Record<string, unknown>;
 };
 
+export type CurrentSession = {
+  email: string;
+  expiresAt: string;
+  name: string;
+  permissions: string[];
+  role: 'ADMIN' | 'OPERATOR' | 'VIEWER';
+  userId: string;
+};
+
+export async function getCurrentSession(): Promise<CurrentSession> {
+  const response = await fetch('/api/v1/auth/session', { credentials: 'include' });
+  if (!response.ok) throw new Error('UNAUTHENTICATED');
+  const body = (await response.json()) as { data: CurrentSession };
+  return body.data;
+}
+
 export async function login(payload: LoginPayload): Promise<void> {
   const response = await fetch('/api/v1/auth/login', {
     body: JSON.stringify(payload),
