@@ -31,6 +31,7 @@ Verificações disponíveis:
 ```bash
 npm run typecheck
 npm run build
+npm test
 ```
 
 As configurações locais devem ser baseadas em `.env.example`.
