@@ -74,7 +74,7 @@ export class PrismaEntryConfirmationRepository implements EntryConfirmationRepos
       findLot: (data) => transaction.stockLot.findFirst({ where: { productId: data.productId, identifier: data.identifier, expirationDate: data.expirationDate } }),
       createLot: (data) => transaction.stockLot.create({ data: { productId: data.productId, identifier: data.identifier, expirationDate: data.expirationDate, unitCost: data.unitCost, initialQuantity: data.quantity, currentQuantity: data.quantity } }),
       addToLot: (lotId, quantity, unitCost) => transaction.stockLot.update({ where: { id: lotId }, data: { initialQuantity: { increment: quantity }, currentQuantity: { increment: quantity }, unitCost } }),
-      createMovement: (data) => transaction.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, type: 'ENTRY', quantity: data.quantity, actorUserId: data.actorUserId, reason: data.reason } }),
+      createMovement: (data) => transaction.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, type: 'ENTRY', quantity: data.quantity, actorUserId: data.actorUserId, reason: data.reason, createdAt: new Date() } }),
       updateSimpleProductCost: async (productId, previous, next, actorUserId, entryId) => {
         if (previous.equals(next)) return;
         await transaction.product.update({ where: { id: productId }, data: { cost: next } });

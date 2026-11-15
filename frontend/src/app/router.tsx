@@ -18,6 +18,7 @@ import { EditProductPage } from '@/app/EditProductPage';
 import { EntriesPage } from '@/app/EntriesPage';
 import { EntryDraftPage } from '@/app/EntryDraftPage';
 import { StockPage } from '@/app/StockPage';
+import { InventoriesPage } from '@/app/InventoriesPage';
 
 export const router = createBrowserRouter([
   {
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
       { path: '/entradas/nova', element: <EntryDraftPage /> },
       { path: '/entradas/:id/editar', element: <EntryDraftPage /> },
       { path: '/estoque', element: <StockPage /> },
+      { path: '/inventarios', element: <InventoriesPage /> },
       {
         path: '/fornecedores/:id/editar',
         element: <EditSupplierPage />,

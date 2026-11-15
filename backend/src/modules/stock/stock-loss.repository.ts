@@ -44,7 +44,7 @@ export class PrismaStockLossRepository implements StockLossRepository {
         if (result.count !== 1) throw new Error('INSUFFICIENT_STOCK');
       },
       findActiveReason: (id) => tx.stockLossReason.findFirst({ where: { id, isActive: true } }),
-      createMovement: (data) => tx.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, quantity: data.quantity, type: 'LOSS', reason: data.reason, stockLossReasonId: data.reasonId, observations: data.observations, actorUserId: data.actorUserId } }),
+      createMovement: (data) => tx.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, quantity: data.quantity, type: 'LOSS', reason: data.reason, stockLossReasonId: data.reasonId, observations: data.observations, actorUserId: data.actorUserId, createdAt: new Date() } }),
       audit: ({ actorUserId, ipAddress, productId, productName, reason, quantity, lotId, movementId }) => this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'STOCK_LOSS_RECORDED', after: { productId, productName, reason, quantity, lotId: lotId ?? null, movementId }, entity: 'StockMovement', entityId: movementId, ipAddress }, tx),
     }));
   }

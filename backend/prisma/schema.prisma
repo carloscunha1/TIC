@@ -64,6 +64,18 @@ enum EntryStatus {
   CANCELADA
 }
 
+enum InventoryType {
+  COMPLETE
+  PARTIAL
+}
+
+enum InventoryStatus {
+  EM_ANDAMENTO
+  AGUARDANDO_CONFERENCIA
+  CONFIRMADO
+  CANCELADO
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -87,6 +99,7 @@ model User {
   stockMovements StockMovement[]
   entries        Entry[]
   stockLossReasons StockLossReason[]
+  inventories      Inventory[]
 
   @@index([status])
   @@map("users")
@@ -146,6 +159,7 @@ model Product {
   stockMovements      StockMovement[]
   stockLots           StockLot[]
   entryItems          EntryItem[]
+  inventoryItems      InventoryItem[]
 
   @@index([categoryId])
   @@index([status])
@@ -195,7 +209,6 @@ model StockMovement {
   actorUser       User              @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   lot             StockLot?         @relation(fields: [lotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   stockLossReason StockLossReason?  @relation(fields: [stockLossReasonId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-
   @@index([productId, createdAt])
   @@index([actorUserId])
   @@index([lotId])
@@ -230,10 +243,48 @@ model StockLot {
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
   product         Product         @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   movements       StockMovement[]
+  inventoryItems  InventoryItem[]
 
   @@index([productId, expirationDate, receivedAt])
   @@index([productId, identifier])
   @@map("stock_lots")
+}
+
+model Inventory {
+  id            String          @id @default(uuid()) @db.Uuid
+  type          InventoryType
+  status        InventoryStatus @default(EM_ANDAMENTO)
+  observations  String?         @db.VarChar(500)
+  startedAt     DateTime        @default(now()) @map("started_at") @db.Timestamptz(3)
+  createdById   String          @map("created_by_id") @db.Uuid
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy     User            @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items         InventoryItem[]
+
+  @@index([status, startedAt])
+  @@index([createdById])
+  @@map("inventories")
+}
+
+model InventoryItem {
+  id               String      @id @default(uuid()) @db.Uuid
+  inventoryId      String      @map("inventory_id") @db.Uuid
+  productId        String      @map("product_id") @db.Uuid
+  lotId            String?     @map("lot_id") @db.Uuid
+  snapshotQuantity Decimal     @map("snapshot_quantity") @db.Decimal(12, 3)
+  countedQuantity  Decimal?    @map("counted_quantity") @db.Decimal(12, 3)
+  countedAt        DateTime?   @map("counted_at") @db.Timestamptz(3)
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  inventory        Inventory   @relation(fields: [inventoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  product          Product     @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  lot              StockLot?   @relation(fields: [lotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([inventoryId, productId, lotId])
+  @@index([inventoryId, productId])
+  @@index([lotId])
+  @@map("inventory_items")
 }
 
 model Supplier {

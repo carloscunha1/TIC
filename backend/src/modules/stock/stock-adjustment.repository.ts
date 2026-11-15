@@ -39,7 +39,7 @@ export class PrismaStockAdjustmentRepository implements StockAdjustmentRepositor
         if (result.count !== 1) throw new Error('INSUFFICIENT_STOCK');
         return transaction.stockBalance.findUniqueOrThrow({ where: { productId } });
       },
-      createMovement: (data) => transaction.stockMovement.create({ data: { productId: data.productId, type: data.type, quantity: data.quantity, reason: data.justification, actorUserId: data.actorUserId } }),
+      createMovement: (data) => transaction.stockMovement.create({ data: { productId: data.productId, type: data.type, quantity: data.quantity, reason: data.justification, actorUserId: data.actorUserId, createdAt: new Date() } }),
       audit: ({ actorUserId, ipAddress, productId, productName, previousBalance, nextBalance, type, quantity, justification, movementId }) => this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'STOCK_ADJUSTMENT_RECORDED', before: { productId, productName, balance: previousBalance }, after: { productId, productName, balance: nextBalance, movementId, type, quantity, justification }, entity: 'StockMovement', entityId: movementId, ipAddress }, transaction),
     }));
   }
