@@ -22,6 +22,7 @@ import type { CurrentSession } from '@/lib/api';
 const navigation = [
   { label: 'Dashboard', icon: Home, permission: 'dashboard.view', to: '/' },
   { label: 'Produtos', icon: Package, permission: 'products.read', to: '/produtos' },
+  { label: 'Novo produto', icon: Package, permission: 'products.manage', to: '/produtos/novo' },
   { label: 'Categorias', icon: Package, permission: 'categories.read', to: '/categorias' },
   { label: 'Fornecedores', icon: Package, permission: 'suppliers.read', to: '/fornecedores' },
   { label: 'Estoque', icon: Boxes, permission: 'stock.manage', to: '/estoque' },
