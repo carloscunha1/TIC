@@ -10,7 +10,7 @@ export class ProductListService {
     return {
       page: query.page,
       pageSize: query.pageSize,
-      products: result.products.map(({ barcode, categoryId, description, expirationAlertDays, id, minimumStock, name, salePrice, sku, status, stockMode, unit }) => ({ barcode, categoryId, description, expirationAlertDays, id, minimumStock: minimumStock.toString(), name, salePrice: salePrice.toString(), sku, status, stockMode, unit })),
+      products: result.products.map(({ barcode, categoryId, description, expirationAlertDays, id, minimumStock, name, salePrice, sku, status, stockBalance, stockMode, unit }) => ({ barcode, categoryId, description, expirationAlertDays, id, minimumStock: minimumStock.toString(), name, salePrice: salePrice.toString(), sku, status, stockBalance: stockBalance?.quantity.toString() ?? null, stockMode, unit })),
       total: result.total,
       totalPages: Math.ceil(result.total / query.pageSize),
     };

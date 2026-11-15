@@ -12,7 +12,7 @@ vi.mock('@/lib/api', () => ({ listCategories, listProducts, updateProductStatus 
 describe('ProductsPage', () => {
   beforeEach(() => {
     listCategories.mockResolvedValue({ categories: [], total: 0, page: 1, pageSize: 100, totalPages: 0 });
-    listProducts.mockResolvedValue({ products: [{ id: 'p1', sku: 'PRD-1', name: 'Água', description: null, barcode: null, categoryId: 'c1', unit: 'UN', salePrice: '2.50', minimumStock: '0', stockMode: 'SIMPLES', expirationAlertDays: 0, status: 'ACTIVE' }], total: 1, page: 1, pageSize: 20, totalPages: 1 });
+    listProducts.mockResolvedValue({ products: [{ id: 'p1', sku: 'PRD-1', name: 'Água', description: null, barcode: null, categoryId: 'c1', unit: 'UN', salePrice: '2.50', minimumStock: '0', stockBalance: '8.000', stockMode: 'SIMPLES', expirationAlertDays: 0, status: 'ACTIVE' }], total: 1, page: 1, pageSize: 20, totalPages: 1 });
     updateProductStatus.mockResolvedValue(undefined);
   });
 
@@ -22,6 +22,7 @@ describe('ProductsPage', () => {
 
     expect(await screen.findByRole('cell', { name: 'Água' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'PRD-1' })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: '8' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Novo produto' })).not.toBeInTheDocument();
   });
 
