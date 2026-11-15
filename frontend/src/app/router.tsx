@@ -15,6 +15,8 @@ import { EditSupplierPage } from '@/app/EditSupplierPage';
 import { CreateProductPage } from '@/app/CreateProductPage';
 import { ProductsPage } from '@/app/ProductsPage';
 import { EditProductPage } from '@/app/EditProductPage';
+import { EntriesPage } from '@/app/EntriesPage';
+import { EntryDraftPage } from '@/app/EntryDraftPage';
 
 export const router = createBrowserRouter([
   {
@@ -44,6 +46,9 @@ export const router = createBrowserRouter([
         path: '/produtos/:id/editar',
         element: <EditProductPage />,
       },
+      { path: '/entradas', element: <EntriesPage /> },
+      { path: '/entradas/nova', element: <EntryDraftPage /> },
+      { path: '/entradas/:id/editar', element: <EntryDraftPage /> },
       {
         path: '/fornecedores/:id/editar',
         element: <EditSupplierPage />,
