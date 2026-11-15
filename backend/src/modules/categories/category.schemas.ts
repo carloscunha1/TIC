@@ -6,3 +6,7 @@ export const createCategorySchema = z.object({
 });
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
+
+export const categoryIdParamSchema = z.object({ id: z.string().uuid() });
+export const updateCategorySchema = createCategorySchema;
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;

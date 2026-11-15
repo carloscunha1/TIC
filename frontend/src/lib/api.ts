@@ -32,6 +32,18 @@ export async function listCategories(params: { page: number; pageSize: number; n
   return body.data;
 }
 
+export async function getCategory(id: string): Promise<CategoryListItem> {
+  const response = await fetch(apiUrl(`/categories/${id}`), { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível carregar a categoria.');
+  const body = (await response.json()) as { data: { category: CategoryListItem } };
+  return body.data.category;
+}
+
+export async function updateCategory(id: string, payload: { name: string; description?: string }): Promise<void> {
+  const response = await fetch(apiUrl(`/categories/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) throw new Error('Não foi possível atualizar a categoria.');
+}
+
 export type ApiErrorResponse = {
   success: false;
   message: string;
