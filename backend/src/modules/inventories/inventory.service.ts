@@ -40,6 +40,7 @@ function serializeInventory(inventory: InventoryDetail) {
     status: inventory.status,
     observations: inventory.observations,
     startedAt: inventory.startedAt.toISOString(),
+    finishedAt: inventory.finishedAt?.toISOString() ?? null,
     createdAt: inventory.createdAt.toISOString(),
     updatedAt: inventory.updatedAt.toISOString(),
     createdBy: inventory.createdBy,
@@ -72,6 +73,43 @@ export class InventoryService {
     const inventory = await this.repository.findById(id);
     if (!inventory) throw new ApiError(404, 'INVENTORY_NOT_FOUND', 'Inventário não encontrado.');
     return serializeInventory(inventory);
+  }
+
+  async submitForReview(id: string, actorUserId: string, ipAddress?: string) {
+    await this.transition(() => this.repository.submitForReview(id, actorUserId, ipAddress));
+    return this.get(id);
+  }
+
+  async confirm(id: string, actorUserId: string, ipAddress?: string) {
+    await this.transition(() => this.repository.confirm(id, actorUserId, ipAddress));
+    return this.get(id);
+  }
+
+  async cancel(id: string, actorUserId: string, ipAddress?: string) {
+    await this.transition(() => this.repository.cancel(id, actorUserId, ipAddress));
+    return this.get(id);
+  }
+
+  private async transition(operation: () => Promise<void>) {
+    try {
+      await operation();
+    } catch (error) {
+      if (!(error instanceof Error)) throw error;
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+        throw new ApiError(409, 'INVENTORY_CONCURRENT_CHANGE', 'O estoque mudou durante a confirmação. Atualize a conferência e tente novamente.');
+      }
+      const errors: Record<string, [number, string, string]> = {
+        INVENTORY_NOT_FOUND: [404, 'INVENTORY_NOT_FOUND', 'Inventário não encontrado.'],
+        INVENTORY_INVALID_STATE: [409, 'INVENTORY_INVALID_STATE', 'O inventário não permite esta operação no estado atual.'],
+        INVENTORY_COUNTS_INCOMPLETE: [409, 'INVENTORY_COUNTS_INCOMPLETE', 'Registre a contagem de todos os itens antes de prosseguir.'],
+        INVENTORY_STOCK_CONFLICT: [409, 'INVENTORY_STOCK_CONFLICT', 'O saldo atual não permite aplicar a divergência. Atualize a conferência e tente novamente.'],
+        INVENTORY_LOT_REQUIRED: [409, 'INVENTORY_LOT_REQUIRED', 'Não é possível ajustar produto por lote sem identificar o lote correspondente.'],
+        INVENTORY_LOT_NOT_FOUND: [409, 'INVENTORY_LOT_NOT_FOUND', 'Um lote do inventário não está mais disponível.'],
+      };
+      const mapped = errors[error.message];
+      if (mapped) throw new ApiError(mapped[0], mapped[1], mapped[2]);
+      throw error;
+    }
   }
 
   async recordCount(inventoryId: string, itemId: string, input: unknown, actorUserId: string, ipAddress?: string) {

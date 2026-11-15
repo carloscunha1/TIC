@@ -36,6 +36,9 @@ class FakeInventoryRepository implements InventoryRepository {
   async findById() { return this.detail; }
   async findCountTarget() { return { status: this.targetStatus, unit: this.unit }; }
   async recordCount(_inventoryId: string, _itemId: string, quantity: Prisma.Decimal) { this.countInput = quantity.toString(); return this.detail.items[0]!; }
+  async submitForReview() { this.targetStatus = 'AGUARDANDO_CONFERENCIA'; }
+  async confirm() { if (this.targetStatus !== 'AGUARDANDO_CONFERENCIA') throw new Error('INVENTORY_INVALID_STATE'); this.targetStatus = 'CONFIRMADO'; }
+  async cancel() { if (this.targetStatus === 'CONFIRMADO' || this.targetStatus === 'CANCELADO') throw new Error('INVENTORY_INVALID_STATE'); this.targetStatus = 'CANCELADO'; }
 }
 
 describe('InventoryService', () => {
@@ -71,5 +74,23 @@ describe('InventoryService', () => {
     await expect(service.recordCount(inventoryId, 'item-1', { countedQuantity: 1.5 }, actorId)).rejects.toMatchObject({ code: 'INVALID_UNIT_QUANTITY' });
     repository.targetStatus = 'CONFIRMADO';
     await expect(service.recordCount(inventoryId, 'item-1', { countedQuantity: 1 }, actorId)).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('moves inventory through review, confirmation and cancellation without permitting confirmed edits', async () => {
+    const repository = new FakeInventoryRepository();
+    const service = new InventoryService(repository);
+    await service.submitForReview(inventoryId, actorId);
+    expect(repository.targetStatus).toBe('AGUARDANDO_CONFERENCIA');
+    await service.confirm(inventoryId, actorId);
+    expect(repository.targetStatus).toBe('CONFIRMADO');
+    await expect(service.cancel(inventoryId, actorId)).rejects.toMatchObject({ code: 'INVENTORY_INVALID_STATE' });
+    await expect(service.recordCount(inventoryId, 'item-1', { countedQuantity: 1 }, actorId)).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('allows cancellation while inventory is open or awaiting review', async () => {
+    const repository = new FakeInventoryRepository();
+    const service = new InventoryService(repository);
+    await service.cancel(inventoryId, actorId);
+    expect(repository.targetStatus).toBe('CANCELADO');
   });
 });

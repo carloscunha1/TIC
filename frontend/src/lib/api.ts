@@ -176,7 +176,7 @@ export type InventoryItemView = {
   expectedQuantity: string;
   divergence: string | null;
 };
-export type InventoryView = { id: string; type: InventoryType; status: 'EM_ANDAMENTO' | 'AGUARDANDO_CONFERENCIA' | 'CONFIRMADO' | 'CANCELADO'; observations: string | null; startedAt: string; createdAt: string; updatedAt: string; createdBy: { id: string; name: string }; items: InventoryItemView[] };
+export type InventoryView = { id: string; type: InventoryType; status: 'EM_ANDAMENTO' | 'AGUARDANDO_CONFERENCIA' | 'CONFIRMADO' | 'CANCELADO'; observations: string | null; startedAt: string; finishedAt: string | null; createdAt: string; updatedAt: string; createdBy: { id: string; name: string }; items: InventoryItemView[] };
 export type InventoryListItem = { id: string; type: InventoryType; status: InventoryView['status']; observations: string | null; startedAt: string; createdAt: string; updatedAt: string; createdBy: { name: string }; _count: { items: number } };
 export async function createInventory(payload: { type: InventoryType; productIds?: string[]; categoryIds?: string[]; observations?: string }): Promise<InventoryView> {
   const response = await fetch(apiUrl('/inventories'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
@@ -198,6 +198,13 @@ export async function recordInventoryCount(inventoryId: string, itemId: string, 
   const response = await fetch(apiUrl(`/inventories/${inventoryId}/items/${itemId}/count`), { body: JSON.stringify({ countedQuantity }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
   if (!response.ok) return entryError(response, 'Não foi possível registrar a contagem.');
 }
+async function inventoryAction(inventoryId: string, action: 'review' | 'confirm' | 'cancel'): Promise<void> {
+  const response = await fetch(apiUrl(`/inventories/${inventoryId}/${action}`), { credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return entryError(response, 'Não foi possível atualizar o inventário.');
+}
+export const submitInventoryForReview = (inventoryId: string) => inventoryAction(inventoryId, 'review');
+export const confirmInventory = (inventoryId: string) => inventoryAction(inventoryId, 'confirm');
+export const cancelInventory = (inventoryId: string) => inventoryAction(inventoryId, 'cancel');
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
