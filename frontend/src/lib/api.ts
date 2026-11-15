@@ -94,6 +94,12 @@ export async function listEntries(params: { page: number; pageSize: number }): P
   return (await response.json() as { data: { entries: EntryListItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
 }
 
+export async function confirmEntry(id: string): Promise<{ entry: EntryView; alreadyConfirmed: boolean }> {
+  const response = await fetch(apiUrl(`/entries/${id}/confirm`), { method: 'POST', credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível confirmar a entrada.');
+  return (await response.json() as { data: { entry: EntryView; alreadyConfirmed: boolean } }).data;
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {

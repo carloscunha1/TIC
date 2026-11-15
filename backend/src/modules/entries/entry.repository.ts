@@ -16,7 +16,7 @@ export interface EntryRepository {
   list(page: number, pageSize: number): Promise<{ entries: EntrySummary[]; total: number }>;
 }
 
-const includeEntry = { supplier: { select: { id: true, name: true } }, items: { include: { product: { select: { id: true, name: true, unit: true, stockMode: true } } }, orderBy: { id: 'asc' as const } } };
+const includeEntry = { supplier: { select: { id: true, name: true } }, items: { include: { product: { select: { id: true, name: true, unit: true, stockMode: true } } }, orderBy: [{ position: 'asc' as const }, { id: 'asc' as const }] } };
 
 function entryAuditSnapshot(entry: EntryWithItems) {
   return { ...entry, items: entry.items.map((item) => ({ ...item, quantity: item.quantity.toString(), unitCost: item.unitCost.toString() })) };
@@ -30,7 +30,7 @@ export class PrismaEntryRepository implements EntryRepository {
 
   createDraft(data: EntryWriteData): Promise<EntryWithItems> {
     return prisma.$transaction(async (transaction) => {
-      const entry = await transaction.entry.create({ data: { supplierId: data.supplierId || null, createdById: data.actorUserId, status: 'EM_ANDAMENTO', items: { create: data.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitCost: item.unitCost, lotIdentifier: item.lotIdentifier || null, expirationDate: item.expirationDate ? new Date(`${item.expirationDate}T00:00:00.000Z`) : null })) } } });
+      const entry = await transaction.entry.create({ data: { supplierId: data.supplierId || null, createdById: data.actorUserId, status: 'EM_ANDAMENTO', items: { create: data.items.map((item, position) => ({ position, productId: item.productId, quantity: item.quantity, unitCost: item.unitCost, lotIdentifier: item.lotIdentifier || null, expirationDate: item.expirationDate ? new Date(`${item.expirationDate}T00:00:00.000Z`) : null })) } } });
       const result = await transaction.entry.findUniqueOrThrow({ where: { id: entry.id }, include: includeEntry });
       await this.auditService.record({ actor: { type: 'USER', userId: data.actorUserId }, action: 'ENTRY_DRAFT_CREATED', after: entryAuditSnapshot(result), entity: 'Entry', entityId: result.id, ipAddress: data.ipAddress }, transaction);
       return result;
@@ -44,7 +44,7 @@ export class PrismaEntryRepository implements EntryRepository {
       const changed = await transaction.entry.updateMany({ where: { id, status: 'EM_ANDAMENTO' }, data: { supplierId: data.supplierId || null } });
       if (changed.count === 0) return null;
       await transaction.entryItem.deleteMany({ where: { entryId: id } });
-      await transaction.entryItem.createMany({ data: data.items.map((item) => ({ entryId: id, productId: item.productId, quantity: item.quantity, unitCost: item.unitCost, lotIdentifier: item.lotIdentifier || null, expirationDate: item.expirationDate ? new Date(`${item.expirationDate}T00:00:00.000Z`) : null })) });
+      await transaction.entryItem.createMany({ data: data.items.map((item, position) => ({ entryId: id, position, productId: item.productId, quantity: item.quantity, unitCost: item.unitCost, lotIdentifier: item.lotIdentifier || null, expirationDate: item.expirationDate ? new Date(`${item.expirationDate}T00:00:00.000Z`) : null })) });
       const result = await transaction.entry.findUniqueOrThrow({ where: { id }, include: includeEntry });
       await this.auditService.record({ actor: { type: 'USER', userId: data.actorUserId }, action: 'ENTRY_DRAFT_UPDATED', before: entryAuditSnapshot(before), after: entryAuditSnapshot(result), entity: 'Entry', entityId: id, ipAddress: data.ipAddress }, transaction);
       return result;
