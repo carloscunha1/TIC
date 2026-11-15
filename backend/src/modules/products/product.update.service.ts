@@ -27,6 +27,7 @@ export class ProductUpdateService {
       return await this.repository.update(id, { ...input, name: input.name.trim(), description: input.description?.trim() || null, barcode: input.barcode?.trim() || null, actorUserId, ipAddress });
     } catch (error) {
       if (error instanceof Error && error.message === 'PRODUCT_NOT_FOUND') throw new ApiError(404, 'PRODUCT_NOT_FOUND', 'Produto não encontrado.');
+      if (error instanceof Error && error.message === 'PRODUCT_STOCK_MODE_IMMUTABLE') throw new ApiError(409, 'PRODUCT_STOCK_MODE_IMMUTABLE', 'A modalidade de estoque não pode ser alterada após movimentações.');
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new ApiError(409, 'BARCODE_ALREADY_EXISTS', 'Já existe um produto com este código de barras.');
       throw error;
     }
