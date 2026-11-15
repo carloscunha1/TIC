@@ -30,4 +30,8 @@ describe('authorization middleware', () => {
       statusCode: 403,
     });
   });
+
+  it('allows a viewer to read products', () => {
+    expect(runGuard('VIEWER', permissions.productsRead)).toBeUndefined();
+  });
 });
