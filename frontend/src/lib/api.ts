@@ -44,6 +44,11 @@ export async function updateCategory(id: string, payload: { name: string; descri
   if (!response.ok) throw new Error('Não foi possível atualizar a categoria.');
 }
 
+export async function updateCategoryStatus(id: string, status: CategoryListItem['status']): Promise<void> {
+  const response = await fetch(apiUrl(`/categories/${id}/status`), { body: JSON.stringify({ status }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) throw new Error('Não foi possível atualizar o status da categoria.');
+}
+
 export type ApiErrorResponse = {
   success: false;
   message: string;

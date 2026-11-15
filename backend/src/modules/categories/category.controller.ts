@@ -7,10 +7,20 @@ import { CategoryService } from './category.service.js';
 import { listCategoriesQuerySchema } from './category.list.schemas.js';
 import { CategoryListService } from './category.list.service.js';
 import { CategoryUpdateService } from './category.update.service.js';
+import { categoryStatusSchema } from './category.status.schemas.js';
+import { CategoryStatusService } from './category.status.service.js';
 
 const categoryService = new CategoryService(new PrismaCategoryRepository(new AuditService(new PrismaAuditRepository())));
 const categoryListService = new CategoryListService(new PrismaCategoryRepository(new AuditService(new PrismaAuditRepository())));
 const categoryUpdateService = new CategoryUpdateService(new PrismaCategoryRepository(new AuditService(new PrismaAuditRepository())));
+const categoryStatusService = new CategoryStatusService(new PrismaCategoryRepository(new AuditService(new PrismaAuditRepository())));
+
+export async function updateCategoryStatus(request: Request, response: Response): Promise<void> {
+  const { id } = categoryIdParamSchema.parse(request.params);
+  const { status } = categoryStatusSchema.parse(request.body);
+  const category = await categoryStatusService.update(id, status, response.locals.auth.userId, request.ip);
+  response.status(200).json({ success: true, data: { category }, requestId: response.locals.requestId });
+}
 
 export async function getCategory(request: Request, response: Response): Promise<void> {
   const { id } = categoryIdParamSchema.parse(request.params);

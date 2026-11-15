@@ -11,6 +11,7 @@ export interface CategoryRepository {
   list(filters: CategoryListFilters): Promise<CategoryListResult>;
   findById(id: string): Promise<Category | null>;
   update(id: string, data: { name: string; description?: string; actorUserId: string; ipAddress?: string }): Promise<Category>;
+  updateStatus(id: string, status: UserStatus, actorUserId: string, ipAddress?: string): Promise<Category>;
 }
 
 export class PrismaCategoryRepository implements CategoryRepository {
@@ -52,6 +53,16 @@ export class PrismaCategoryRepository implements CategoryRepository {
       if (!before) throw new Error('CATEGORY_NOT_FOUND');
       const category = await transaction.category.update({ where: { id }, data: { description: data.description, name: data.name } });
       await this.auditService.record({ actor: { type: 'USER', userId: data.actorUserId }, action: 'CATEGORY_UPDATED', before, after: category, entity: 'Category', entityId: id, ipAddress: data.ipAddress }, transaction);
+      return category;
+    });
+  }
+
+  updateStatus(id: string, status: UserStatus, actorUserId: string, ipAddress?: string): Promise<Category> {
+    return prisma.$transaction(async (transaction) => {
+      const before = await transaction.category.findUnique({ where: { id } });
+      if (!before) throw new Error('CATEGORY_NOT_FOUND');
+      const category = await transaction.category.update({ where: { id }, data: { status } });
+      await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'CATEGORY_STATUS_UPDATED', before, after: category, entity: 'Category', entityId: id, ipAddress }, transaction);
       return category;
     });
   }
