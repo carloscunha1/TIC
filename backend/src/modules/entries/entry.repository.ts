@@ -1,4 +1,4 @@
-import { Prisma, type EntryStatus, type Product, type Supplier } from '@prisma/client';
+import { Prisma, type Product, type Supplier } from '@prisma/client';
 import { prisma } from '../../infrastructure/database/prisma.js';
 import type { AuditService } from '../audit/audit.service.js';
 import type { EntryDraftInput } from './entry.schemas.js';
@@ -54,7 +54,7 @@ export class PrismaEntryRepository implements EntryRepository {
   findById(id: string): Promise<EntryWithItems | null> { return prisma.entry.findUnique({ where: { id }, include: includeEntry }); }
 
   async list(page: number, pageSize: number): Promise<{ entries: EntrySummary[]; total: number }> {
-    const where: Prisma.EntryWhereInput = { status: 'EM_ANDAMENTO' as EntryStatus };
+    const where: Prisma.EntryWhereInput = {};
     const [entries, total] = await prisma.$transaction([
       prisma.entry.findMany({ where, include: { supplier: { select: { name: true } }, _count: { select: { items: true } } }, orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * pageSize, take: pageSize }),
       prisma.entry.count({ where }),
