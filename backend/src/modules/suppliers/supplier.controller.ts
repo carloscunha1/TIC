@@ -7,10 +7,20 @@ import { SupplierService } from './supplier.service.js';
 import { listSuppliersQuerySchema } from './supplier.list.schemas.js';
 import { SupplierListService } from './supplier.list.service.js';
 import { SupplierUpdateService } from './supplier.update.service.js';
+import { supplierStatusSchema } from './supplier.status.schemas.js';
+import { SupplierStatusService } from './supplier.status.service.js';
 
 const supplierService = new SupplierService(new PrismaSupplierRepository(new AuditService(new PrismaAuditRepository())));
 const supplierListService = new SupplierListService(new PrismaSupplierRepository(new AuditService(new PrismaAuditRepository())));
 const supplierUpdateService = new SupplierUpdateService(new PrismaSupplierRepository(new AuditService(new PrismaAuditRepository())));
+const supplierStatusService = new SupplierStatusService(new PrismaSupplierRepository(new AuditService(new PrismaAuditRepository())));
+
+export async function updateSupplierStatus(request: Request, response: Response): Promise<void> {
+  const { id } = supplierIdParamSchema.parse(request.params);
+  const { status } = supplierStatusSchema.parse(request.body);
+  const supplier = await supplierStatusService.update(id, status, response.locals.auth.userId, request.ip);
+  response.status(200).json({ success: true, data: { supplier }, requestId: response.locals.requestId });
+}
 
 export async function getSupplier(request: Request, response: Response): Promise<void> {
   const { id } = supplierIdParamSchema.parse(request.params);

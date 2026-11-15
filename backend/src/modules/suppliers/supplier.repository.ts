@@ -6,7 +6,7 @@ export type CreateSupplierData = { name: string; document?: string; phone?: stri
 export type SupplierListFilters = { page: number; pageSize: number; name?: string; status?: SupplierStatus };
 export type SupplierListResult = { suppliers: Supplier[]; total: number };
 
-export interface SupplierRepository { create(data: CreateSupplierData): Promise<Supplier>; list(filters: SupplierListFilters): Promise<SupplierListResult>; findById(id: string): Promise<Supplier | null>; update(id: string, data: Omit<CreateSupplierData, 'actorUserId'> & { actorUserId: string }): Promise<Supplier>; }
+export interface SupplierRepository { create(data: CreateSupplierData): Promise<Supplier>; list(filters: SupplierListFilters): Promise<SupplierListResult>; findById(id: string): Promise<Supplier | null>; update(id: string, data: Omit<CreateSupplierData, 'actorUserId'> & { actorUserId: string }): Promise<Supplier>; updateStatus(id: string, status: SupplierStatus, actorUserId: string, ipAddress?: string): Promise<Supplier>; }
 
 export class PrismaSupplierRepository implements SupplierRepository {
   constructor(private readonly auditService: AuditService) {}
@@ -38,6 +38,16 @@ export class PrismaSupplierRepository implements SupplierRepository {
       if (!before) throw new Error('SUPPLIER_NOT_FOUND');
       const supplier = await transaction.supplier.update({ where: { id }, data: { document: data.document, email: data.email, name: data.name, notes: data.notes, phone: data.phone } });
       await this.auditService.record({ actor: { type: 'USER', userId: data.actorUserId }, action: 'SUPPLIER_UPDATED', before, after: supplier, entity: 'Supplier', entityId: id, ipAddress: data.ipAddress }, transaction);
+      return supplier;
+    });
+  }
+
+  updateStatus(id: string, status: SupplierStatus, actorUserId: string, ipAddress?: string): Promise<Supplier> {
+    return prisma.$transaction(async (transaction) => {
+      const before = await transaction.supplier.findUnique({ where: { id } });
+      if (!before) throw new Error('SUPPLIER_NOT_FOUND');
+      const supplier = await transaction.supplier.update({ where: { id }, data: { status } });
+      await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'SUPPLIER_STATUS_UPDATED', before, after: supplier, entity: 'Supplier', entityId: id, ipAddress }, transaction);
       return supplier;
     });
   }
