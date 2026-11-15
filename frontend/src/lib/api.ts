@@ -58,6 +58,42 @@ export async function getSupplier(id: string): Promise<SupplierListItem> { const
 export async function updateSupplier(id: string, payload: { name: string; document?: string; phone?: string; email?: string; notes?: string }): Promise<void> { const response = await fetch(apiUrl(`/suppliers/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' }); if (!response.ok) { const error = await response.json().catch(() => null) as { message?: string } | null; throw new Error(error?.message ?? 'Não foi possível atualizar o fornecedor.'); } }
 export async function updateSupplierStatus(id: string, status: SupplierListItem['status']): Promise<void> { const response = await fetch(apiUrl(`/suppliers/${id}/status`), { body: JSON.stringify({ status }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' }); if (!response.ok) throw new Error('Não foi possível atualizar o status do fornecedor.'); }
 
+export type EntryDraftItemInput = { productId: string; quantity: number; unitCost: number; lotIdentifier?: string; expirationDate?: string };
+export type EntryDraftInput = { supplierId?: string | null; items: EntryDraftItemInput[] };
+export type EntryItemView = Omit<EntryDraftItemInput, 'quantity' | 'unitCost' | 'lotIdentifier' | 'expirationDate'> & { id: string; quantity: string; unitCost: string; lotIdentifier: string | null; expirationDate: string | null; product: { id: string; name: string; unit: ProductListItem['unit']; stockMode: ProductListItem['stockMode'] } };
+export type EntryView = { id: string; status: 'EM_ANDAMENTO' | 'CONFIRMADA' | 'CANCELADA'; supplierId: string | null; supplier: { id: string; name: string } | null; items: EntryItemView[]; createdAt: string; updatedAt: string };
+export type EntryListItem = { id: string; status: EntryView['status']; supplier: { name: string } | null; _count: { items: number }; createdAt: string; updatedAt: string };
+
+async function entryError(response: Response, fallback: string): Promise<never> {
+  const error = await response.json().catch(() => null) as { message?: string } | null;
+  throw new Error(error?.message ?? fallback);
+}
+
+export async function createEntry(payload: EntryDraftInput): Promise<EntryView> {
+  const response = await fetch(apiUrl('/entries'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return entryError(response, 'Não foi possível criar a entrada.');
+  return (await response.json() as { data: { entry: EntryView } }).data.entry;
+}
+
+export async function updateEntry(id: string, payload: EntryDraftInput): Promise<EntryView> {
+  const response = await fetch(apiUrl(`/entries/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) return entryError(response, 'Não foi possível atualizar a entrada.');
+  return (await response.json() as { data: { entry: EntryView } }).data.entry;
+}
+
+export async function getEntry(id: string): Promise<EntryView> {
+  const response = await fetch(apiUrl(`/entries/${id}`), { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível carregar a entrada.');
+  return (await response.json() as { data: { entry: EntryView } }).data.entry;
+}
+
+export async function listEntries(params: { page: number; pageSize: number }): Promise<{ entries: EntryListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  const response = await fetch(`${apiUrl('/entries')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível consultar as entradas.');
+  return (await response.json() as { data: { entries: EntryListItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {

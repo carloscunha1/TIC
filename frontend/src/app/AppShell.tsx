@@ -25,6 +25,7 @@ const navigation = [
   { label: 'Novo produto', icon: Package, permission: 'products.manage', to: '/produtos/novo' },
   { label: 'Categorias', icon: Package, permission: 'categories.read', to: '/categorias' },
   { label: 'Fornecedores', icon: Package, permission: 'suppliers.read', to: '/fornecedores' },
+  { label: 'Entradas', icon: Package, permission: 'entries.manage', to: '/entradas' },
   { label: 'Estoque', icon: Boxes, permission: 'stock.manage', to: '/estoque' },
   { label: 'Vendas', icon: ShoppingCart, permission: 'sales.manage', to: '/vendas' },
   { label: 'Clientes', icon: Users, permission: 'customers.manage', to: '/clientes' },
@@ -48,6 +49,7 @@ function ShellContent() {
     },
   });
   const visibleNavigation = navigation.filter((item) => hasPermission(item.permission));
+  const mobileNavigation = visibleNavigation.filter((item) => item.label !== 'Novo produto').slice(0, 5);
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors dark:bg-slate-950 dark:text-slate-50">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-[#0045B5] text-white shadow-xl lg:flex">
@@ -105,7 +107,7 @@ function ShellContent() {
       </main>
 
       <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white/95 px-1 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
-        {visibleNavigation.slice(0, 5).map(({ label, icon: Icon, to }) => (
+        {mobileNavigation.map(({ label, icon: Icon, to }) => (
           <NavLink key={label} to={to} className={({ isActive }) => `flex flex-col items-center gap-1 rounded-md py-1 text-[11px] ${isActive ? 'font-semibold text-[#0045B5] dark:text-[#FFD100]' : 'text-slate-500'}`}>
             <Icon aria-hidden="true" size={18} />
             <span>{label}</span>

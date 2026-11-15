@@ -1,0 +1,16 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { listEntries } from '@/lib/api';
+
+export function EntriesPage() {
+  const [page, setPage] = useState(1);
+  const query = useQuery({ queryKey: ['entries', page], queryFn: () => listEntries({ page, pageSize: 20 }) });
+  return <section aria-labelledby="entries-title">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#0045B5]">Operação</p><h1 id="entries-title" className="mt-1 text-2xl font-bold">Entradas em andamento</h1><p className="mt-2 text-sm text-slate-500">Rascunhos de recebimento que ainda não alteram o estoque.</p></div><Link to="/entradas/nova" className="rounded-lg bg-[#0045B5] px-4 py-2.5 text-sm font-semibold text-white">Nova entrada</Link></div>
+    {query.isLoading && <p role="status" className="py-8 text-center text-sm text-slate-500">Carregando entradas…</p>}
+    {query.isError && <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{query.error.message}</p>}
+    {query.data?.entries.length === 0 && <p className="rounded-lg border border-dashed p-8 text-center text-sm text-slate-500">Nenhuma entrada em andamento.</p>}
+    {query.data && query.data.entries.length > 0 && <><div className="overflow-x-auto rounded-xl border bg-white dark:border-slate-800 dark:bg-slate-900"><table className="min-w-full text-left text-sm"><caption className="sr-only">Entradas em andamento</caption><thead><tr><th className="px-4 py-3">Fornecedor</th><th className="px-4 py-3">Itens</th><th className="px-4 py-3">Atualizada em</th><th className="px-4 py-3">Ação</th></tr></thead><tbody>{query.data.entries.map((entry) => <tr key={entry.id} className="border-t dark:border-slate-800"><td className="px-4 py-3">{entry.supplier?.name ?? 'Sem fornecedor'}</td><td className="px-4 py-3">{entry._count.items}</td><td className="px-4 py-3">{new Date(entry.updatedAt).toLocaleString('pt-BR')}</td><td className="px-4 py-3"><Link className="font-semibold text-[#0045B5]" to={`/entradas/${entry.id}/editar`}>Editar</Link></td></tr>)}</tbody></table></div><div className="mt-4 flex items-center justify-between text-sm"><span>{query.data.total} entrada(s)</span><div className="flex items-center gap-2"><button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Anterior</button><span>Página {page} de {Math.max(query.data.totalPages, 1)}</span><button type="button" disabled={page >= query.data.totalPages} onClick={() => setPage((value) => value + 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Próxima</button></div></div></>}
+  </section>;
+}
