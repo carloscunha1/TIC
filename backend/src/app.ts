@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { userRouter } from './modules/users/user.routes.js';
 import { categoryRouter } from './modules/categories/category.routes.js';
+import { supplierRouter } from './modules/suppliers/supplier.routes.js';
 import { ApiError } from './shared/http/api-error.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
@@ -98,6 +99,7 @@ app.use(express.json());
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/suppliers', supplierRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({

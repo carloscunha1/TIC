@@ -14,7 +14,7 @@ const category: Category = {
 
 describe('CategoryService.create', () => {
   it('normalizes and persists a category', async () => {
-    const repo: CategoryRepository = { create: jest.fn(async () => category), list: jest.fn() };
+    const repo: CategoryRepository = { create: jest.fn(async () => category), findById: jest.fn(), list: jest.fn(), update: jest.fn(), updateStatus: jest.fn() };
     await new CategoryService(repo).create({ name: ' Bebidas ', description: '  Frias  ' }, 'user-id', '127.0.0.1');
     expect(repo.create).toHaveBeenCalledWith({ actorUserId: 'user-id', description: 'Frias', ipAddress: '127.0.0.1', name: 'Bebidas' });
   });

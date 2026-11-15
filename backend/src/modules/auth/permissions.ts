@@ -16,6 +16,7 @@ export const permissions = {
   settingsManage: 'settings.manage',
   stockManage: 'stock.manage',
   suppliersManage: 'suppliers.manage',
+  suppliersRead: 'suppliers.read',
   usersManage: 'users.manage',
 } as const;
 
@@ -38,6 +39,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     permissions.salesManage,
     permissions.stockManage,
     permissions.suppliersManage,
+    permissions.suppliersRead,
   ],
   VIEWER: [
     permissions.dashboardView,
@@ -45,6 +47,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     permissions.loyaltyRead,
     permissions.productsRead,
     permissions.reportsRead,
+    permissions.suppliersRead,
   ],
 };
 

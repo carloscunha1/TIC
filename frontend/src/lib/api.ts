@@ -1,5 +1,24 @@
 export type LoginPayload = { email: string; password: string };
 
+export async function createSupplier(payload: { name: string; document?: string; phone?: string; email?: string; notes?: string }): Promise<void> {
+  const response = await fetch(apiUrl('/suppliers'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) { const error = (await response.json().catch(() => null)) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível criar o fornecedor.'); }
+}
+
+export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
+export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.name) query.set('name', params.name);
+  if (params.status) query.set('status', params.status);
+  const response = await fetch(`${apiUrl('/suppliers')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível consultar os fornecedores.');
+  const body = await response.json() as { data: { suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number } };
+  return body.data;
+}
+
+export async function getSupplier(id: string): Promise<SupplierListItem> { const response = await fetch(apiUrl(`/suppliers/${id}`), { credentials: 'include' }); if (!response.ok) throw new Error('Não foi possível carregar o fornecedor.'); const body = await response.json() as { data: { supplier: SupplierListItem } }; return body.data.supplier; }
+export async function updateSupplier(id: string, payload: { name: string; document?: string; phone?: string; email?: string; notes?: string }): Promise<void> { const response = await fetch(apiUrl(`/suppliers/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' }); if (!response.ok) { const error = await response.json().catch(() => null) as { message?: string } | null; throw new Error(error?.message ?? 'Não foi possível atualizar o fornecedor.'); } }
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {
@@ -30,6 +49,23 @@ export async function listCategories(params: { page: number; pageSize: number; n
   if (!response.ok) throw new Error('Não foi possível consultar as categorias.');
   const body = (await response.json()) as { data: CategoryListResponse };
   return body.data;
+}
+
+export async function getCategory(id: string): Promise<CategoryListItem> {
+  const response = await fetch(apiUrl(`/categories/${id}`), { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível carregar a categoria.');
+  const body = (await response.json()) as { data: { category: CategoryListItem } };
+  return body.data.category;
+}
+
+export async function updateCategory(id: string, payload: { name: string; description?: string }): Promise<void> {
+  const response = await fetch(apiUrl(`/categories/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) throw new Error('Não foi possível atualizar a categoria.');
+}
+
+export async function updateCategoryStatus(id: string, status: CategoryListItem['status']): Promise<void> {
+  const response = await fetch(apiUrl(`/categories/${id}/status`), { body: JSON.stringify({ status }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) throw new Error('Não foi possível atualizar o status da categoria.');
 }
 
 export type ApiErrorResponse = {
