@@ -9,19 +9,19 @@ const input = { name: ' Produto atualizado ', description: '', barcode: '', cate
 
 describe('ProductUpdateService', () => {
   it('updates editable values and clears optional text fields', async () => {
-    const repository: ProductRepository = { findActiveCategory: jest.fn(), findById: jest.fn(async () => currentProduct), create: jest.fn(), list: jest.fn(), update: jest.fn(async () => currentProduct), listValueHistory: jest.fn() };
+    const repository: ProductRepository = { findActiveCategory: jest.fn(), findById: jest.fn(async () => currentProduct), create: jest.fn(), list: jest.fn(), update: jest.fn(async () => currentProduct), updateStatus: jest.fn(), listValueHistory: jest.fn() };
     await new ProductUpdateService(repository).update(currentProduct.id, input, 'user-id');
     expect(repository.update).toHaveBeenCalledWith(currentProduct.id, expect.objectContaining({ name: 'Produto atualizado', description: null, barcode: null, actorUserId: 'user-id' }));
   });
 
   it('requires an active category when changing category', async () => {
-    const repository: ProductRepository = { findActiveCategory: jest.fn(async () => null), findById: jest.fn(async () => currentProduct), create: jest.fn(), list: jest.fn(), update: jest.fn(), listValueHistory: jest.fn() };
+    const repository: ProductRepository = { findActiveCategory: jest.fn(async () => null), findById: jest.fn(async () => currentProduct), create: jest.fn(), list: jest.fn(), update: jest.fn(), updateStatus: jest.fn(), listValueHistory: jest.fn() };
     await expect(new ProductUpdateService(repository).update(currentProduct.id, { ...input, categoryId: category.id }, 'user-id')).rejects.toMatchObject({ code: 'CATEGORY_INACTIVE_OR_NOT_FOUND', statusCode: 400 });
     expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('returns a not-found error for unknown products', async () => {
-    const repository: ProductRepository = { findActiveCategory: jest.fn(), findById: jest.fn(async () => null), create: jest.fn(), list: jest.fn(), update: jest.fn(), listValueHistory: jest.fn() };
+    const repository: ProductRepository = { findActiveCategory: jest.fn(), findById: jest.fn(async () => null), create: jest.fn(), list: jest.fn(), update: jest.fn(), updateStatus: jest.fn(), listValueHistory: jest.fn() };
     await expect(new ProductUpdateService(repository).get('missing')).rejects.toMatchObject({ code: 'PRODUCT_NOT_FOUND', statusCode: 404 });
   });
 });
