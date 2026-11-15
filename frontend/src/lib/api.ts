@@ -5,6 +5,17 @@ export async function createSupplier(payload: { name: string; document?: string;
   if (!response.ok) { const error = (await response.json().catch(() => null)) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível criar o fornecedor.'); }
 }
 
+export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
+export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.name) query.set('name', params.name);
+  if (params.status) query.set('status', params.status);
+  const response = await fetch(`${apiUrl('/suppliers')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível consultar os fornecedores.');
+  const body = await response.json() as { data: { suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number } };
+  return body.data;
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {

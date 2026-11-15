@@ -10,6 +10,7 @@ import { CreateCategoryPage } from '@/app/CreateCategoryPage';
 import { CategoriesPage } from '@/app/CategoriesPage';
 import { EditCategoryPage } from '@/app/EditCategoryPage';
 import { CreateSupplierPage } from '@/app/CreateSupplierPage';
+import { SuppliersPage } from '@/app/SuppliersPage';
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +27,10 @@ export const router = createBrowserRouter([
       {
         path: '/categorias',
         element: <CategoriesPage />,
+      },
+      {
+        path: '/fornecedores',
+        element: <SuppliersPage />,
       },
       {
         path: '/fornecedores/novo',
