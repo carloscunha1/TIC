@@ -5,11 +5,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InventoriesPage } from './InventoriesPage';
 
-const { createInventory, getInventory, listCategories, listInventories, listProducts, recordInventoryCount } = vi.hoisted(() => ({ createInventory: vi.fn(), getInventory: vi.fn(), listCategories: vi.fn(), listInventories: vi.fn(), listProducts: vi.fn(), recordInventoryCount: vi.fn() }));
-vi.mock('@/lib/api', () => ({ createInventory, getInventory, listCategories, listInventories, listProducts, recordInventoryCount }));
+const { cancelInventory, confirmInventory, createInventory, getInventory, listCategories, listInventories, listProducts, recordInventoryCount, submitInventoryForReview } = vi.hoisted(() => ({ cancelInventory: vi.fn(), confirmInventory: vi.fn(), createInventory: vi.fn(), getInventory: vi.fn(), listCategories: vi.fn(), listInventories: vi.fn(), listProducts: vi.fn(), recordInventoryCount: vi.fn(), submitInventoryForReview: vi.fn() }));
+vi.mock('@/lib/api', () => ({ cancelInventory, confirmInventory, createInventory, getInventory, listCategories, listInventories, listProducts, recordInventoryCount, submitInventoryForReview }));
 
 const inventory = {
-  id: 'inventory-1', type: 'COMPLETE', status: 'EM_ANDAMENTO', observations: null, startedAt: '2026-11-15T10:00:00.000Z', createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', createdBy: { id: 'user-1', name: 'Operador' },
+  id: 'inventory-1', type: 'COMPLETE', status: 'EM_ANDAMENTO', observations: null, startedAt: '2026-11-15T10:00:00.000Z', finishedAt: null, createdAt: '2026-11-15T10:00:00.000Z', updatedAt: '2026-11-15T10:00:00.000Z', createdBy: { id: 'user-1', name: 'Operador' },
   items: [{ id: 'item-1', productId: 'product-1', lotId: null, product: { id: 'product-1', sku: 'SKU-1', name: 'Água', unit: 'UN', stockMode: 'SIMPLES' }, lot: null, snapshotQuantity: '8', countedQuantity: null, countedAt: null, expectedQuantity: '10', divergence: null }],
 };
 
@@ -22,6 +22,9 @@ describe('InventoriesPage', () => {
     createInventory.mockResolvedValue(inventory);
     getInventory.mockResolvedValue(inventory);
     recordInventoryCount.mockResolvedValue(undefined);
+    submitInventoryForReview.mockResolvedValue(undefined);
+    confirmInventory.mockResolvedValue(undefined);
+    cancelInventory.mockResolvedValue(undefined);
   });
 
   function renderPage() {
@@ -61,5 +64,26 @@ describe('InventoriesPage', () => {
     await user.type(screen.getByLabelText('Contagem de Água'), '0');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(recordInventoryCount).toHaveBeenCalledWith('inventory-1', 'item-1', 0));
+  });
+
+  it('sends a fully counted inventory for review and applies confirmation', async () => {
+    const user = userEvent.setup();
+    listInventories.mockResolvedValue({ inventories: [{ id: 'inventory-1', type: 'COMPLETE', status: 'EM_ANDAMENTO', observations: null, startedAt: inventory.startedAt, createdAt: inventory.createdAt, updatedAt: inventory.updatedAt, createdBy: { name: 'Operador' }, _count: { items: 1 } }], total: 1, page: 1, pageSize: 20, totalPages: 1 });
+    getInventory.mockResolvedValueOnce({ ...inventory, items: [{ ...inventory.items[0], countedQuantity: '10', divergence: '0' }] }).mockResolvedValueOnce({ ...inventory, status: 'AGUARDANDO_CONFERENCIA', items: [{ ...inventory.items[0], countedQuantity: '10', divergence: '0' }] });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Abrir contagem' }));
+    await user.click(await screen.findByRole('button', { name: 'Enviar para conferência' }));
+    await waitFor(() => expect(submitInventoryForReview).toHaveBeenCalledWith('inventory-1'));
+    await user.click(await screen.findByRole('button', { name: 'Confirmar e aplicar ajustes' }));
+    await waitFor(() => expect(confirmInventory).toHaveBeenCalledWith('inventory-1'));
+  });
+
+  it('cancels an open inventory', async () => {
+    const user = userEvent.setup();
+    listInventories.mockResolvedValue({ inventories: [{ id: 'inventory-1', type: 'COMPLETE', status: 'EM_ANDAMENTO', observations: null, startedAt: inventory.startedAt, createdAt: inventory.createdAt, updatedAt: inventory.updatedAt, createdBy: { name: 'Operador' }, _count: { items: 1 } }], total: 1, page: 1, pageSize: 20, totalPages: 1 });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Abrir contagem' }));
+    await user.click(await screen.findByRole('button', { name: 'Cancelar inventário' }));
+    await waitFor(() => expect(cancelInventory).toHaveBeenCalledWith('inventory-1'));
   });
 });

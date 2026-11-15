@@ -23,6 +23,9 @@ export interface InventoryRepository {
   findById(id: string): Promise<InventoryDetail | null>;
   findCountTarget(inventoryId: string, itemId: string): Promise<InventoryCountTarget | null>;
   recordCount(inventoryId: string, itemId: string, quantity: Prisma.Decimal, actorUserId: string, ipAddress?: string): Promise<InventoryItem>;
+  submitForReview(inventoryId: string, actorUserId: string, ipAddress?: string): Promise<void>;
+  confirm(inventoryId: string, actorUserId: string, ipAddress?: string): Promise<void>;
+  cancel(inventoryId: string, actorUserId: string, ipAddress?: string): Promise<void>;
 }
 
 function auditItems(items: Array<{ productId: string; lotId: string | null; snapshotQuantity: Prisma.Decimal }>) {
@@ -114,6 +117,89 @@ export class PrismaInventoryRepository implements InventoryRepository {
       const updated = await tx.inventoryItem.update({ where: { id: itemId }, data: { countedQuantity: quantity, countedAt: new Date() } });
       await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'INVENTORY_ITEM_COUNTED', before: { id: before.id, productId: before.productId, lotId: before.lotId, countedQuantity: before.countedQuantity?.toString() ?? null }, after: { id: updated.id, productId: updated.productId, lotId: updated.lotId, countedQuantity: quantity.toString() }, entity: 'InventoryItem', entityId: updated.id, ipAddress }, tx);
       return updated;
+    });
+  }
+
+  submitForReview(inventoryId: string, actorUserId: string, ipAddress?: string): Promise<void> {
+    return prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "inventories" WHERE "id" = ${inventoryId}::uuid FOR UPDATE`;
+      if (!rows.length) throw new Error('INVENTORY_NOT_FOUND');
+      const inventory = await tx.inventory.findUniqueOrThrow({ where: { id: inventoryId }, include: { items: { select: { id: true, countedQuantity: true } } } });
+      if (inventory.status !== 'EM_ANDAMENTO') throw new Error('INVENTORY_INVALID_STATE');
+      if (inventory.items.some((item) => item.countedQuantity === null)) throw new Error('INVENTORY_COUNTS_INCOMPLETE');
+      await tx.inventory.update({ where: { id: inventoryId }, data: { status: 'AGUARDANDO_CONFERENCIA' } });
+      await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'INVENTORY_SUBMITTED_FOR_REVIEW', before: { status: inventory.status }, after: { status: 'AGUARDANDO_CONFERENCIA' }, entity: 'Inventory', entityId: inventoryId, ipAddress }, tx);
+    });
+  }
+
+  confirm(inventoryId: string, actorUserId: string, ipAddress?: string): Promise<void> {
+    return prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "inventories" WHERE "id" = ${inventoryId}::uuid FOR UPDATE`;
+      if (!rows.length) throw new Error('INVENTORY_NOT_FOUND');
+      const inventory = await tx.inventory.findUniqueOrThrow({
+        where: { id: inventoryId },
+        include: {
+          items: {
+            include: { product: { select: { id: true, name: true, unit: true, stockMode: true } } },
+            orderBy: [{ productId: 'asc' }, { lotId: 'asc' }, { id: 'asc' }],
+          },
+        },
+      });
+      if (inventory.status !== 'AGUARDANDO_CONFERENCIA') throw new Error('INVENTORY_INVALID_STATE');
+      if (inventory.items.some((item) => item.countedQuantity === null)) throw new Error('INVENTORY_COUNTS_INCOMPLETE');
+      const productIds = [...new Set(inventory.items.map((item) => item.productId))].sort();
+      for (const productId of productIds) await tx.$queryRaw`SELECT "id" FROM "products" WHERE "id" = ${productId}::uuid FOR UPDATE`;
+      const movements = await tx.stockMovement.findMany({ where: { productId: { in: productIds }, createdAt: { gt: inventory.startedAt } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+      const directions: Record<string, number> = { ENTRY: 1, ADJUSTMENT_IN: 1, RETURN_IN: 1, REVERSAL_IN: 1, EXIT: -1, ADJUSTMENT_OUT: -1, LOSS: -1, RETURN_OUT: -1, REVERSAL_OUT: -1 };
+      for (const item of inventory.items) {
+        const delta = movements.filter((movement) => movement.productId === item.productId && (item.lotId ? movement.lotId === item.lotId : movement.lotId === null)).reduce((sum, movement) => sum.plus(movement.quantity.mul(directions[movement.type] ?? 0)), new Prisma.Decimal(0));
+        const expected = item.snapshotQuantity.plus(delta);
+        const counted = item.countedQuantity!;
+        const adjustment = counted.minus(expected);
+        if (adjustment.isZero()) continue;
+        if (item.product.stockMode === 'LOTE' && !item.lotId) throw new Error('INVENTORY_LOT_REQUIRED');
+        const type = adjustment.isPositive() ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT';
+        const quantity = adjustment.abs();
+        let before: Prisma.Decimal;
+        let after: Prisma.Decimal;
+        if (item.lotId) {
+          await tx.$queryRaw`SELECT "id" FROM "stock_lots" WHERE "id" = ${item.lotId}::uuid FOR UPDATE`;
+          const lot = await tx.stockLot.findUnique({ where: { id: item.lotId }, select: { currentQuantity: true } });
+          if (!lot) throw new Error('INVENTORY_LOT_NOT_FOUND');
+          before = lot.currentQuantity;
+          if (adjustment.isPositive()) await tx.stockLot.update({ where: { id: item.lotId }, data: { currentQuantity: { increment: quantity } } });
+          else {
+            const changed = await tx.stockLot.updateMany({ where: { id: item.lotId, currentQuantity: { gte: quantity } }, data: { currentQuantity: { decrement: quantity } } });
+            if (changed.count !== 1) throw new Error('INVENTORY_STOCK_CONFLICT');
+          }
+          after = before.plus(adjustment);
+        } else {
+          await tx.$queryRaw`SELECT "id" FROM "stock_balances" WHERE "product_id" = ${item.productId}::uuid FOR UPDATE`;
+          const balance = await tx.stockBalance.findUnique({ where: { productId: item.productId } });
+          before = balance?.quantity ?? new Prisma.Decimal(0);
+          if (adjustment.isPositive()) await tx.stockBalance.upsert({ where: { productId: item.productId }, create: { productId: item.productId, quantity }, update: { quantity: { increment: quantity } } });
+          else {
+            const changed = await tx.stockBalance.updateMany({ where: { productId: item.productId, quantity: { gte: quantity } }, data: { quantity: { decrement: quantity } } });
+            if (changed.count !== 1) throw new Error('INVENTORY_STOCK_CONFLICT');
+          }
+          after = before.plus(adjustment);
+        }
+        const movement = await tx.stockMovement.create({ data: { productId: item.productId, lotId: item.lotId, type, quantity, reason: `Ajuste do inventário ${inventoryId}`, actorUserId, createdAt: new Date() } });
+        await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'INVENTORY_STOCK_ADJUSTED', before: { productId: item.productId, lotId: item.lotId, quantity: before.toString() }, after: { productId: item.productId, lotId: item.lotId, quantity: after.toString(), movementId: movement.id, type, adjustment: quantity.toString() }, entity: 'StockMovement', entityId: movement.id, ipAddress }, tx);
+      }
+      await tx.inventory.update({ where: { id: inventoryId }, data: { status: 'CONFIRMADO', finishedAt: new Date() } });
+      await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'INVENTORY_CONFIRMED', before: { status: inventory.status }, after: { status: 'CONFIRMADO', itemCount: inventory.items.length }, entity: 'Inventory', entityId: inventoryId, ipAddress }, tx);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  cancel(inventoryId: string, actorUserId: string, ipAddress?: string): Promise<void> {
+    return prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT "id" FROM "inventories" WHERE "id" = ${inventoryId}::uuid FOR UPDATE`;
+      if (!rows.length) throw new Error('INVENTORY_NOT_FOUND');
+      const inventory = await tx.inventory.findUniqueOrThrow({ where: { id: inventoryId }, select: { status: true } });
+      if (inventory.status !== 'EM_ANDAMENTO' && inventory.status !== 'AGUARDANDO_CONFERENCIA') throw new Error('INVENTORY_INVALID_STATE');
+      await tx.inventory.update({ where: { id: inventoryId }, data: { status: 'CANCELADO', finishedAt: new Date() } });
+      await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'INVENTORY_CANCELLED', before: { status: inventory.status }, after: { status: 'CANCELADO' }, entity: 'Inventory', entityId: inventoryId, ipAddress }, tx);
     });
   }
 }

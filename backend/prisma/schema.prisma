@@ -256,6 +256,7 @@ model Inventory {
   status        InventoryStatus @default(EM_ANDAMENTO)
   observations  String?         @db.VarChar(500)
   startedAt     DateTime        @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt    DateTime?       @map("finished_at") @db.Timestamptz(3)
   createdById   String          @map("created_by_id") @db.Uuid
   createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)

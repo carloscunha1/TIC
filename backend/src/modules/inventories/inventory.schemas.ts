@@ -23,6 +23,7 @@ export const recordInventoryCountSchema = z.object({
 });
 export const inventoryIdParamsSchema = z.object({ id: z.string().uuid() });
 export const inventoryItemParamsSchema = z.object({ id: z.string().uuid(), itemId: z.string().uuid() });
+export const inventoryActionParamsSchema = inventoryIdParamsSchema;
 export const inventoryListQuerySchema = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(20) });
 
 export type CreateInventoryInput = z.infer<typeof createInventorySchema>;
