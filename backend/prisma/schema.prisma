@@ -41,6 +41,11 @@ enum ProductStatus {
   INACTIVE
 }
 
+enum ProductValueField {
+  SALE_PRICE
+  COST
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -60,6 +65,7 @@ model User {
   mustChangePassword Boolean @default(false) @map("must_change_password")
   sessions     Session[]
   auditLogs    AuditLog[]
+  productValueHistory ProductValueHistory[]
 
   @@index([status])
   @@map("users")
@@ -114,10 +120,29 @@ model Product {
   createdAt                DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
   category                 Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  valueHistory        ProductValueHistory[]
 
   @@index([categoryId])
   @@index([status])
   @@map("products")
+}
+
+model ProductValueHistory {
+  id              String            @id @default(uuid()) @db.Uuid
+  productId       String            @map("product_id") @db.Uuid
+  field           ProductValueField
+  previousValue   Decimal           @map("previous_value") @db.Decimal(12, 2)
+  newValue        Decimal           @map("new_value") @db.Decimal(12, 2)
+  source          String            @default("MANUAL_EDIT") @db.VarChar(40)
+  sourceId        String?           @map("source_id") @db.VarChar(100)
+  changedByUserId String?           @map("changed_by_user_id") @db.Uuid
+  changedAt       DateTime          @default(now()) @map("changed_at") @db.Timestamptz(3)
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  changedByUser   User?             @relation(fields: [changedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([productId, changedAt])
+  @@index([changedByUserId])
+  @@map("product_value_history")
 }
 
 model Supplier {
