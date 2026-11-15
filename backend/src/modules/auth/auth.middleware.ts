@@ -19,7 +19,7 @@ export const requireAuth: RequestHandler = async (request, response, next) => {
   try {
     const session = await sessionService.authenticate(token);
     response.locals.auth = session;
-    setSessionCookie(response, session.renewedToken, session.expiresAt);
+    setSessionCookie(response, session.sessionToken, session.expiresAt);
     next();
   } catch (error) {
     clearSessionCookie(response);

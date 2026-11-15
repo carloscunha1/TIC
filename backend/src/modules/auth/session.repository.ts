@@ -10,7 +10,7 @@ export interface SessionRepository {
   }): Promise<Session>;
   findById(id: string): Promise<(Session & { user: User }) | null>;
   revoke(id: string, revokedAt: Date): Promise<void>;
-  renew(id: string, input: { tokenHash: string; lastActivityAt: Date; expiresAt: Date }): Promise<void>;
+  renew(id: string, input: { lastActivityAt: Date; expiresAt: Date }): Promise<void>;
 }
 
 export class PrismaSessionRepository implements SessionRepository {
@@ -26,7 +26,7 @@ export class PrismaSessionRepository implements SessionRepository {
     await prisma.session.updateMany({ where: { id, revokedAt: null }, data: { revokedAt } });
   }
 
-  async renew(id: string, input: { tokenHash: string; lastActivityAt: Date; expiresAt: Date }): Promise<void> {
+  async renew(id: string, input: { lastActivityAt: Date; expiresAt: Date }): Promise<void> {
     await prisma.session.update({ where: { id }, data: input });
   }
 }

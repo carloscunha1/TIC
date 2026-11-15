@@ -32,7 +32,7 @@ function tokenFor(session: Session): string {
 }
 
 describe('SessionService', () => {
-  it('renews an active session and rotates its token hash', async () => {
+  it('extends an active session without rotating the token', async () => {
     const session = createSession();
     const token = tokenFor(session);
     session.tokenHash = createHash('sha256').update(token).digest('hex');
@@ -47,8 +47,27 @@ describe('SessionService', () => {
     const result = await service.authenticate(token);
 
     expect(result.userId).toBe(user.id);
-    expect(result.renewedToken).not.toBe(token);
-    expect(repository.renew).toHaveBeenCalledWith(session.id, expect.objectContaining({ tokenHash: expect.any(String) }));
+    expect(result.sessionToken).toBe(token);
+    expect(repository.renew).toHaveBeenCalledWith(session.id, expect.objectContaining({ lastActivityAt: expect.any(Date), expiresAt: expect.any(Date) }));
+    expect(repository.renew).not.toHaveBeenCalledWith(session.id, expect.objectContaining({ tokenHash: expect.any(String) }));
+  });
+
+  it('accepts parallel requests using the same session token', async () => {
+    const session = createSession();
+    const token = tokenFor(session);
+    session.tokenHash = createHash('sha256').update(token).digest('hex');
+    const repository: SessionRepository = {
+      create: jest.fn(),
+      findById: jest.fn(async () => session),
+      renew: jest.fn(async () => undefined),
+      revoke: jest.fn(async () => undefined),
+    };
+    const service = new SessionService({ jwtSecret: secret, sessionRepository: repository });
+
+    const results = await Promise.all([service.authenticate(token), service.authenticate(token), service.authenticate(token)]);
+
+    expect(results.map((result) => result.sessionToken)).toEqual([token, token, token]);
+    expect(repository.renew).toHaveBeenCalledTimes(3);
   });
 
   it('revokes an inactive session', async () => {

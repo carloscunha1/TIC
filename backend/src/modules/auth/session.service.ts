@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { ApiError } from '../../shared/http/api-error.js';
 import type { SessionRepository } from './session.repository.js';
@@ -18,7 +18,7 @@ export type AuthenticatedSession = {
   email: string;
   role: UserRole;
   expiresAt: Date;
-  renewedToken: string;
+  sessionToken: string;
 };
 
 type SessionClaims = JwtPayload & { sid: string; sub: string };
@@ -45,22 +45,16 @@ export class SessionService {
     }
 
     const expiresAt = new Date(now.getTime() + INACTIVITY_SECONDS * 1000);
-    const renewedToken = jwt.sign({ sid: session.id, sub: session.userId }, this.dependencies.jwtSecret, {
-      expiresIn: INACTIVITY_SECONDS,
-      jwtid: randomUUID(),
-    });
-
     await this.dependencies.sessionRepository.renew(session.id, {
       expiresAt,
       lastActivityAt: now,
-      tokenHash: hashToken(renewedToken),
     });
 
     return {
       email: session.user.email,
       expiresAt,
       name: session.user.name,
-      renewedToken,
+      sessionToken: token,
       role: session.user.role,
       sessionId: session.id,
       userId: session.userId,
