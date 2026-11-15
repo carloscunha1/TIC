@@ -1,5 +1,10 @@
 export type LoginPayload = { email: string; password: string };
 
+export async function createSupplier(payload: { name: string; document?: string; phone?: string; email?: string; notes?: string }): Promise<void> {
+  const response = await fetch(apiUrl('/suppliers'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) { const error = (await response.json().catch(() => null)) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível criar o fornecedor.'); }
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {

@@ -18,6 +18,11 @@ enum UserStatus {
   INACTIVE
 }
 
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -71,6 +76,21 @@ model Category {
 
   @@index([status])
   @@map("categories")
+}
+
+model Supplier {
+  id          String         @id @default(uuid()) @db.Uuid
+  name        String         @db.VarChar(160)
+  document    String?        @unique @db.VarChar(14)
+  phone       String?        @db.VarChar(30)
+  email       String?        @db.VarChar(255)
+  notes       String?        @db.VarChar(500)
+  status      SupplierStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status])
+  @@map("suppliers")
 }
 
 model Session {

@@ -9,6 +9,7 @@ import { ResetPasswordPage } from '@/app/ResetPasswordPage';
 import { CreateCategoryPage } from '@/app/CreateCategoryPage';
 import { CategoriesPage } from '@/app/CategoriesPage';
 import { EditCategoryPage } from '@/app/EditCategoryPage';
+import { CreateSupplierPage } from '@/app/CreateSupplierPage';
 
 export const router = createBrowserRouter([
   {
@@ -25,6 +26,10 @@ export const router = createBrowserRouter([
       {
         path: '/categorias',
         element: <CategoriesPage />,
+      },
+      {
+        path: '/fornecedores/novo',
+        element: <CreateSupplierPage />,
       },
       {
         path: '/categorias/:id/editar',
