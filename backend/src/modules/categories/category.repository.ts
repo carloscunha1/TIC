@@ -1,11 +1,14 @@
-import type { Category, Prisma } from '@prisma/client';
+import type { Category, Prisma, UserStatus } from '@prisma/client';
 import { prisma } from '../../infrastructure/database/prisma.js';
 import type { AuditService } from '../audit/audit.service.js';
 
 export type CreateCategoryData = { name: string; description?: string; actorUserId: string; ipAddress?: string };
+export type CategoryListFilters = { page: number; pageSize: number; name?: string; status?: UserStatus };
+export type CategoryListResult = { categories: Category[]; total: number };
 
 export interface CategoryRepository {
   create(data: CreateCategoryData): Promise<Category>;
+  list(filters: CategoryListFilters): Promise<CategoryListResult>;
 }
 
 export class PrismaCategoryRepository implements CategoryRepository {
@@ -24,5 +27,16 @@ export class PrismaCategoryRepository implements CategoryRepository {
       }, transaction);
       return category;
     });
+  }
+
+  async list(filters: CategoryListFilters): Promise<CategoryListResult> {
+    const where: Prisma.CategoryWhereInput = {};
+    if (filters.name) where.name = { contains: filters.name, mode: 'insensitive' };
+    if (filters.status) where.status = filters.status;
+    const [categories, total] = await prisma.$transaction([
+      prisma.category.findMany({ orderBy: [{ name: 'asc' }, { createdAt: 'desc' }], skip: (filters.page - 1) * filters.pageSize, take: filters.pageSize, where }),
+      prisma.category.count({ where }),
+    ]);
+    return { categories, total };
   }
 }

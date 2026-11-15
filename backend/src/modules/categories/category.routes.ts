@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { requireAuth } from '../auth/auth.middleware.js';
 import { requirePermission } from '../auth/authorization.middleware.js';
 import { permissions } from '../auth/permissions.js';
-import { createCategory } from './category.controller.js';
+import { createCategory, listCategories } from './category.controller.js';
 
 export const categoryRouter = Router();
 
 categoryRouter.post('/', requireAuth, requirePermission(permissions.categoriesManage), createCategory);
+categoryRouter.get('/', requireAuth, requirePermission(permissions.categoriesRead), listCategories);

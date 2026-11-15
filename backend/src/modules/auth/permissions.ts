@@ -3,6 +3,7 @@ import type { UserRole } from '@prisma/client';
 export const permissions = {
   auditRead: 'audit.read',
   categoriesManage: 'categories.manage',
+  categoriesRead: 'categories.read',
   customersManage: 'customers.manage',
   dashboardView: 'dashboard.view',
   entriesManage: 'entries.manage',
@@ -27,6 +28,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   OPERATOR: [
     permissions.dashboardView,
     permissions.categoriesManage,
+    permissions.categoriesRead,
     permissions.customersManage,
     permissions.entriesManage,
     permissions.loyaltyRead,
@@ -39,6 +41,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   ],
   VIEWER: [
     permissions.dashboardView,
+    permissions.categoriesRead,
     permissions.loyaltyRead,
     permissions.productsRead,
     permissions.reportsRead,

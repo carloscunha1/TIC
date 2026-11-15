@@ -19,6 +19,19 @@ export async function createCategory(payload: { name: string; description?: stri
   }
 }
 
+export type CategoryListItem = { id: string; name: string; description: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
+export type CategoryListResponse = { categories: CategoryListItem[]; total: number; page: number; pageSize: number; totalPages: number };
+
+export async function listCategories(params: { page: number; pageSize: number; name?: string; status?: CategoryListItem['status'] }): Promise<CategoryListResponse> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.name) query.set('name', params.name);
+  if (params.status) query.set('status', params.status);
+  const response = await fetch(`${apiUrl('/categories')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível consultar as categorias.');
+  const body = (await response.json()) as { data: CategoryListResponse };
+  return body.data;
+}
+
 export type ApiErrorResponse = {
   success: false;
   message: string;
