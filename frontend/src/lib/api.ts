@@ -15,6 +15,25 @@ export async function listProducts(params: { page: number; pageSize: number; sea
   return body.data;
 }
 
+export type ProductDetail = Omit<ProductListItem, 'salePrice' | 'minimumStock'> & { cost: string; salePrice: string; minimumStock: string; createdAt: string; updatedAt: string };
+export async function getProduct(id: string): Promise<ProductDetail> {
+  const response = await fetch(apiUrl(`/products/${id}`), { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível carregar o produto.');
+  const body = await response.json() as { data: { product: ProductDetail } };
+  return body.data.product;
+}
+export async function updateProduct(id: string, payload: { name: string; description?: string; barcode?: string; categoryId: string; unit: ProductListItem['unit']; cost: number; salePrice: number; minimumStock: number; stockMode: ProductListItem['stockMode']; expirationAlertDays: number }): Promise<void> {
+  const response = await fetch(apiUrl(`/products/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as { message?: string } | null; throw new Error(error?.message ?? 'Não foi possível atualizar o produto.'); }
+}
+export type ProductValueHistoryItem = { id: string; field: 'SALE_PRICE' | 'COST'; previousValue: string; newValue: string; source: string; sourceId: string | null; changedByUserId: string | null; changedByUser: { name: string } | null; changedAt: string };
+export async function getProductValueHistory(id: string): Promise<ProductValueHistoryItem[]> {
+  const response = await fetch(apiUrl(`/products/${id}/value-history`), { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível carregar o histórico de valores.');
+  const body = await response.json() as { data: { history: ProductValueHistoryItem[] } };
+  return body.data.history;
+}
+
 export async function createSupplier(payload: { name: string; document?: string; phone?: string; email?: string; notes?: string }): Promise<void> {
   const response = await fetch(apiUrl('/suppliers'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
   if (!response.ok) { const error = (await response.json().catch(() => null)) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível criar o fornecedor.'); }
