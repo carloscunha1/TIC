@@ -2,6 +2,19 @@ export type LoginPayload = { email: string; password: string };
 
 export async function createProduct(payload: { name: string; description?: string; barcode?: string; categoryId: string; unit: 'UN' | 'KG' | 'G' | 'L' | 'ML'; cost: number; salePrice: number; minimumStock: number; stockMode: 'SIMPLES' | 'LOTE'; expirationAlertDays: number }): Promise<void> { const response = await fetch(apiUrl('/products'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' }); if (!response.ok) { const error = await response.json().catch(() => null) as { message?: string } | null; throw new Error(error?.message ?? 'Não foi possível criar o produto.'); } }
 
+export type ProductListItem = { id: string; sku: string; name: string; description: string | null; barcode: string | null; categoryId: string; unit: 'UN' | 'KG' | 'G' | 'L' | 'ML'; salePrice: string; minimumStock: string; stockMode: 'SIMPLES' | 'LOTE'; expirationAlertDays: number; status: 'ACTIVE' | 'INACTIVE' };
+export async function listProducts(params: { page: number; pageSize: number; search?: string; categoryId?: string; status?: ProductListItem['status']; stockMode?: ProductListItem['stockMode'] }): Promise<{ products: ProductListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.search) query.set('search', params.search);
+  if (params.categoryId) query.set('categoryId', params.categoryId);
+  if (params.status) query.set('status', params.status);
+  if (params.stockMode) query.set('stockMode', params.stockMode);
+  const response = await fetch(`${apiUrl('/products')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível consultar os produtos.');
+  const body = await response.json() as { data: { products: ProductListItem[]; total: number; page: number; pageSize: number; totalPages: number } };
+  return body.data;
+}
+
 export async function createSupplier(payload: { name: string; document?: string; phone?: string; email?: string; notes?: string }): Promise<void> {
   const response = await fetch(apiUrl('/suppliers'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
   if (!response.ok) { const error = (await response.json().catch(() => null)) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível criar o fornecedor.'); }
