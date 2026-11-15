@@ -12,6 +12,7 @@ import { EditCategoryPage } from '@/app/EditCategoryPage';
 import { CreateSupplierPage } from '@/app/CreateSupplierPage';
 import { SuppliersPage } from '@/app/SuppliersPage';
 import { EditSupplierPage } from '@/app/EditSupplierPage';
+import { CreateProductPage } from '@/app/CreateProductPage';
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
       {
         path: '/categorias',
         element: <CategoriesPage />,
+      },
+      {
+        path: '/produtos/novo',
+        element: <CreateProductPage />,
       },
       {
         path: '/fornecedores/:id/editar',

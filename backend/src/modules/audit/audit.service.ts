@@ -38,6 +38,7 @@ export function sanitizeAuditData(value: unknown): Prisma.InputJsonValue | undef
 }
 
 function sanitizeValue(value: unknown): unknown {
+  if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(sanitizeValue);
   if (value && typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).map(([key, nestedValue]) => [key, SENSITIVE_KEY.test(key) ? '[REDACTED]' : sanitizeValue(nestedValue)]));

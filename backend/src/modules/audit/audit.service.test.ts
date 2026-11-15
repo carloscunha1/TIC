@@ -29,4 +29,13 @@ describe('AuditService.record', () => {
     await new AuditService(repo).record({ actor: { type: 'SYSTEM' }, action: 'JOB_RUN', entity: 'Job' });
     expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'SYSTEM', actorUserId: undefined }), undefined);
   });
+
+  it('serializes dates inside audit snapshots for Prisma JSON fields', async () => {
+    const repo = repository();
+    const createdAt = new Date('2026-11-15T01:00:00.000Z');
+    await new AuditService(repo).record({ actor: { type: 'SYSTEM' }, action: 'PRODUCT_CREATED', entity: 'Product', after: { createdAt, nested: { updatedAt: createdAt } } });
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({
+      afterData: { createdAt: '2026-11-15T01:00:00.000Z', nested: { updatedAt: '2026-11-15T01:00:00.000Z' } },
+    }), undefined);
+  });
 });

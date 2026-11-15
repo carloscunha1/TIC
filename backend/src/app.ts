@@ -5,6 +5,7 @@ import { authRouter } from './modules/auth/auth.routes.js';
 import { userRouter } from './modules/users/user.routes.js';
 import { categoryRouter } from './modules/categories/category.routes.js';
 import { supplierRouter } from './modules/suppliers/supplier.routes.js';
+import { productRouter } from './modules/products/product.routes.js';
 import { ApiError } from './shared/http/api-error.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
@@ -49,6 +50,7 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
 
   logStructured('request.error', {
     code,
+    error: sanitizeErrorForLog(error),
     message: isApiError || isValidationError ? message : 'Unhandled application error',
     requestId: response.locals.requestId,
     statusCode,
@@ -62,6 +64,17 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
     requestId: response.locals.requestId,
   });
 };
+
+function sanitizeErrorForLog(error: unknown): { name: string; message: string; stack?: string } {
+  if (!(error instanceof Error)) return { name: 'UnknownError', message: 'Non-error value thrown.' };
+  const safeMessage = error.message
+    .replace(/(password|passwd|pin|token|secret|credential|authorization)(\s*[:=]\s*)[^\s,;]+/gi, '$1$2[REDACTED]')
+    .replace(/(postgres(?:ql)?:\/\/)[^\s@]+:[^\s@]+@/gi, '$1[REDACTED]@');
+  const safeStack = error.stack?.split('\n').map((line) => line
+    .replace(/(password|passwd|pin|token|secret|credential|authorization)(\s*[:=]\s*)[^\s,;]+/gi, '$1$2[REDACTED]')
+    .replace(/(postgres(?:ql)?:\/\/)[^\s@]+:[^\s@]+@/gi, '$1[REDACTED]@')).join('\n');
+  return { name: error.name, message: safeMessage, ...(safeStack ? { stack: safeStack } : {}) };
+}
 
 function logStructured(event: string, context: Record<string, unknown>): void {
   console.log(
@@ -100,6 +113,7 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/suppliers', supplierRouter);
+app.use('/api/v1/products', productRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({
