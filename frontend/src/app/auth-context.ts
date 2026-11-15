@@ -1,0 +1,16 @@
+import { createContext, useContext } from 'react';
+import type { CurrentSession } from '@/lib/api';
+
+export type AuthContextValue = {
+  session: CurrentSession | undefined;
+  isLoading: boolean;
+  hasPermission: (permission: string) => boolean;
+};
+
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used inside AuthProvider');
+  return context;
+}

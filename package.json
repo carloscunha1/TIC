@@ -1,0 +1,31 @@
+{
+  "name": "tic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de gestão da Conveniência do Posto Paulo VI",
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build:backend": "npm run build --workspace backend",
+    "build:frontend": "npm run build --workspace frontend",
+    "typecheck:backend": "npm run typecheck --workspace backend",
+    "typecheck:frontend": "npm run typecheck --workspace frontend",
+    "lint:frontend": "npm run lint --workspace frontend",
+    "test:backend": "npm test --workspace backend",
+    "test:frontend": "npm test --workspace frontend",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f db",
+    "db:generate": "npm run prisma:generate --workspace backend",
+    "db:migrate": "npm run prisma:migrate --workspace backend",
+    "db:deploy": "npm run prisma:deploy --workspace backend",
+    "db:check": "npm run db:check --workspace backend",
+    "db:bootstrap": "npm run db:bootstrap --workspace backend"
+  },
+  "engines": { "node": "24.15.0" }
+}
