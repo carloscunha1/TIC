@@ -6,7 +6,7 @@ export type CreateSupplierData = { name: string; document?: string; phone?: stri
 export type SupplierListFilters = { page: number; pageSize: number; name?: string; status?: SupplierStatus };
 export type SupplierListResult = { suppliers: Supplier[]; total: number };
 
-export interface SupplierRepository { create(data: CreateSupplierData): Promise<Supplier>; list(filters: SupplierListFilters): Promise<SupplierListResult>; }
+export interface SupplierRepository { create(data: CreateSupplierData): Promise<Supplier>; list(filters: SupplierListFilters): Promise<SupplierListResult>; findById(id: string): Promise<Supplier | null>; update(id: string, data: Omit<CreateSupplierData, 'actorUserId'> & { actorUserId: string }): Promise<Supplier>; }
 
 export class PrismaSupplierRepository implements SupplierRepository {
   constructor(private readonly auditService: AuditService) {}
@@ -28,5 +28,17 @@ export class PrismaSupplierRepository implements SupplierRepository {
       prisma.supplier.count({ where }),
     ]);
     return { suppliers, total };
+  }
+
+  findById(id: string): Promise<Supplier | null> { return prisma.supplier.findUnique({ where: { id } }); }
+
+  update(id: string, data: Omit<CreateSupplierData, 'actorUserId'> & { actorUserId: string }): Promise<Supplier> {
+    return prisma.$transaction(async (transaction) => {
+      const before = await transaction.supplier.findUnique({ where: { id } });
+      if (!before) throw new Error('SUPPLIER_NOT_FOUND');
+      const supplier = await transaction.supplier.update({ where: { id }, data: { document: data.document, email: data.email, name: data.name, notes: data.notes, phone: data.phone } });
+      await this.auditService.record({ actor: { type: 'USER', userId: data.actorUserId }, action: 'SUPPLIER_UPDATED', before, after: supplier, entity: 'Supplier', entityId: id, ipAddress: data.ipAddress }, transaction);
+      return supplier;
+    });
   }
 }

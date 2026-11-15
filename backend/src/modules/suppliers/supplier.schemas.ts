@@ -9,3 +9,6 @@ export const createSupplierSchema = z.object({
 });
 
 export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
+export const supplierIdParamSchema = z.object({ id: z.string().uuid() });
+export const updateSupplierSchema = createSupplierSchema;
+export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;

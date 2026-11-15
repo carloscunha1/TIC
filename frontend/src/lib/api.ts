@@ -16,6 +16,9 @@ export async function listSuppliers(params: { page: number; pageSize: number; na
   return body.data;
 }
 
+export async function getSupplier(id: string): Promise<SupplierListItem> { const response = await fetch(apiUrl(`/suppliers/${id}`), { credentials: 'include' }); if (!response.ok) throw new Error('Não foi possível carregar o fornecedor.'); const body = await response.json() as { data: { supplier: SupplierListItem } }; return body.data.supplier; }
+export async function updateSupplier(id: string, payload: { name: string; document?: string; phone?: string; email?: string; notes?: string }): Promise<void> { const response = await fetch(apiUrl(`/suppliers/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' }); if (!response.ok) { const error = await response.json().catch(() => null) as { message?: string } | null; throw new Error(error?.message ?? 'Não foi possível atualizar o fornecedor.'); } }
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {
