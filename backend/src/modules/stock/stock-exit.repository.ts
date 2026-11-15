@@ -43,7 +43,7 @@ export class PrismaStockExitRepository implements StockExitRepository {
         const result = await transaction.stockLot.updateMany({ where: { id: lotId, currentQuantity: { gte: quantity } }, data: { currentQuantity: { decrement: quantity } } });
         if (result.count !== 1) throw new Error('INSUFFICIENT_STOCK');
       },
-      createMovement: (data) => transaction.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, type: 'EXIT', quantity: data.quantity, reason: data.reason, actorUserId: data.actorUserId } }),
+      createMovement: (data) => transaction.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, type: 'EXIT', quantity: data.quantity, reason: data.reason, actorUserId: data.actorUserId, createdAt: new Date() } }),
       audit: ({ actorUserId, ipAddress, productId, productName, reason, quantity, physicalBefore, physicalAfter, availableBefore, availableAfter, movements }) => this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'STOCK_EXIT_RECORDED', before: { productId, productName, physicalBalance: physicalBefore, availableBalance: availableBefore }, after: { productId, productName, reason, quantity, physicalBalance: physicalAfter, availableBalance: availableAfter, movements }, entity: 'Product', entityId: productId, ipAddress }, transaction),
     }));
   }

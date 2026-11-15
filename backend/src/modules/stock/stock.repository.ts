@@ -33,7 +33,7 @@ export class PrismaStockMovementRepository implements StockMovementRepository {
         if (!balance) throw new Error('STOCK_BALANCE_NOT_FOUND');
         return balance;
       },
-      createMovement: (data) => transaction.stockMovement.create({ data }),
+      createMovement: (data) => transaction.stockMovement.create({ data: { ...data, createdAt: new Date() } }),
     }));
   }
 }

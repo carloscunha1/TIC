@@ -163,6 +163,42 @@ export async function updateCustomStockLossReason(id: string, payload: { name?: 
   if (!response.ok) return entryError(response, 'Não foi possível atualizar o motivo customizado.');
 }
 
+export type InventoryType = 'COMPLETE' | 'PARTIAL';
+export type InventoryItemView = {
+  id: string;
+  productId: string;
+  lotId: string | null;
+  product: { id: string; sku: string; name: string; unit: ProductListItem['unit']; stockMode: ProductListItem['stockMode'] };
+  lot: { id: string; identifier: string; expirationDate: string | null } | null;
+  snapshotQuantity: string;
+  countedQuantity: string | null;
+  countedAt: string | null;
+  expectedQuantity: string;
+  divergence: string | null;
+};
+export type InventoryView = { id: string; type: InventoryType; status: 'EM_ANDAMENTO' | 'AGUARDANDO_CONFERENCIA' | 'CONFIRMADO' | 'CANCELADO'; observations: string | null; startedAt: string; createdAt: string; updatedAt: string; createdBy: { id: string; name: string }; items: InventoryItemView[] };
+export type InventoryListItem = { id: string; type: InventoryType; status: InventoryView['status']; observations: string | null; startedAt: string; createdAt: string; updatedAt: string; createdBy: { name: string }; _count: { items: number } };
+export async function createInventory(payload: { type: InventoryType; productIds?: string[]; categoryIds?: string[]; observations?: string }): Promise<InventoryView> {
+  const response = await fetch(apiUrl('/inventories'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return entryError(response, 'Não foi possível criar o inventário.');
+  return (await response.json() as { data: { inventory: InventoryView } }).data.inventory;
+}
+export async function listInventories(params: { page: number; pageSize: number }): Promise<{ inventories: InventoryListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  const response = await fetch(`${apiUrl('/inventories')}?${query}`, { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível consultar os inventários.');
+  return (await response.json() as { data: { inventories: InventoryListItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
+}
+export async function getInventory(id: string): Promise<InventoryView> {
+  const response = await fetch(apiUrl(`/inventories/${id}`), { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível carregar o inventário.');
+  return (await response.json() as { data: { inventory: InventoryView } }).data.inventory;
+}
+export async function recordInventoryCount(inventoryId: string, itemId: string, countedQuantity: number): Promise<void> {
+  const response = await fetch(apiUrl(`/inventories/${inventoryId}/items/${itemId}/count`), { body: JSON.stringify({ countedQuantity }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) return entryError(response, 'Não foi possível registrar a contagem.');
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {

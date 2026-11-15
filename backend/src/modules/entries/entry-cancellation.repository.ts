@@ -69,7 +69,7 @@ export class PrismaEntryCancellationRepository implements EntryCancellationRepos
       changeLot: (lotId, quantity) => transaction.stockLot.update({ where: { id: lotId }, data: { initialQuantity: { decrement: quantity }, currentQuantity: { decrement: quantity } } }),
       getEntryMovements: (entryId) => transaction.stockMovement.findMany({ where: { reason: `Confirmação da entrada ${entryId}`, type: 'ENTRY' }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }),
       getLotMovements: (lotId) => transaction.stockMovement.findMany({ where: { lotId }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] }),
-      createReversal: (data) => transaction.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, type: 'REVERSAL_OUT', quantity: data.quantity, reason: data.reason, actorUserId: data.actorUserId } }),
+      createReversal: (data) => transaction.stockMovement.create({ data: { productId: data.productId, lotId: data.lotId, type: 'REVERSAL_OUT', quantity: data.quantity, reason: data.reason, actorUserId: data.actorUserId, createdAt: new Date() } }),
       markCanceled: async (entryId) => {
         const result = await transaction.entry.updateMany({ where: { id: entryId, status: 'CONFIRMADA' }, data: { status: 'CANCELADA' } });
         return result.count === 1;
