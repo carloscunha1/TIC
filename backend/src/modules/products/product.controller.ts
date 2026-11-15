@@ -7,10 +7,20 @@ import { ProductService } from './product.service.js';
 import { listProductsQuerySchema } from './product.list.schemas.js';
 import { ProductListService } from './product.list.service.js';
 import { ProductUpdateService } from './product.update.service.js';
+import { ProductStatusService } from './product.status.service.js';
+import { productStatusSchema } from './product.status.schemas.js';
 
 const productService = new ProductService(new PrismaProductRepository(new AuditService(new PrismaAuditRepository())));
 const productListService = new ProductListService(new PrismaProductRepository(new AuditService(new PrismaAuditRepository())));
 const productUpdateService = new ProductUpdateService(new PrismaProductRepository(new AuditService(new PrismaAuditRepository())));
+const productStatusService = new ProductStatusService(new PrismaProductRepository(new AuditService(new PrismaAuditRepository())));
+
+export async function updateProductStatus(request: Request, response: Response): Promise<void> {
+  const { id } = productIdParamSchema.parse(request.params);
+  const { status } = productStatusSchema.parse(request.body);
+  const product = await productStatusService.update(id, status, response.locals.auth.userId, request.ip);
+  response.status(200).json({ success: true, data: { product }, requestId: response.locals.requestId });
+}
 
 export async function getProduct(request: Request, response: Response): Promise<void> {
   const { id } = productIdParamSchema.parse(request.params);

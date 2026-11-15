@@ -14,6 +14,7 @@ export interface ProductRepository {
   create(data: CreateProductData): Promise<Product>;
   list(filters: ProductListFilters): Promise<ProductListResult>;
   update(id: string, data: UpdateProductData & { actorUserId: string; ipAddress?: string }): Promise<Product>;
+  updateStatus(id: string, status: ProductStatus, actorUserId: string, ipAddress?: string): Promise<Product>;
   listValueHistory(productId: string): Promise<ProductValueHistory[]>;
 }
 
@@ -55,6 +56,16 @@ export class PrismaProductRepository implements ProductRepository {
       await this.auditService.record({ actor: { type: 'USER', userId: data.actorUserId }, action: 'PRODUCT_UPDATED', before: { ...before, cost: before.cost.toString(), minimumStock: before.minimumStock.toString(), salePrice: before.salePrice.toString() }, after: { ...product, cost: product.cost.toString(), minimumStock: product.minimumStock.toString(), salePrice: product.salePrice.toString() }, entity: 'Product', entityId: id, ipAddress: data.ipAddress }, transaction);
       return product;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  updateStatus(id: string, status: ProductStatus, actorUserId: string, ipAddress?: string): Promise<Product> {
+    return prisma.$transaction(async (transaction) => {
+      const before = await transaction.product.findUnique({ where: { id } });
+      if (!before) throw new Error('PRODUCT_NOT_FOUND');
+      const product = await transaction.product.update({ where: { id }, data: { status } });
+      await this.auditService.record({ actor: { type: 'USER', userId: actorUserId }, action: 'PRODUCT_STATUS_UPDATED', before: { ...before, cost: before.cost.toString(), minimumStock: before.minimumStock.toString(), salePrice: before.salePrice.toString() }, after: { ...product, cost: product.cost.toString(), minimumStock: product.minimumStock.toString(), salePrice: product.salePrice.toString() }, entity: 'Product', entityId: id, ipAddress }, transaction);
+      return product;
+    });
   }
 
   listValueHistory(productId: string) {
