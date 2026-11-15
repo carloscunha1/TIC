@@ -100,6 +100,12 @@ export async function confirmEntry(id: string): Promise<{ entry: EntryView; alre
   return (await response.json() as { data: { entry: EntryView; alreadyConfirmed: boolean } }).data;
 }
 
+export async function cancelEntry(id: string, justification: string): Promise<{ entry: EntryView; reversals: Array<{ productId: string; lotId: string | null; quantity: string }> }> {
+  const response = await fetch(apiUrl(`/entries/${id}/cancel`), { body: JSON.stringify({ justification }), headers: { 'Content-Type': 'application/json' }, method: 'POST', credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível cancelar a entrada.');
+  return (await response.json() as { data: { entry: EntryView; reversals: Array<{ productId: string; lotId: string | null; quantity: string }> } }).data;
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {
