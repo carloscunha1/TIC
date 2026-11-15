@@ -113,6 +113,23 @@ export async function recordStockAdjustment(payload: StockAdjustmentInput): Prom
   return (await response.json() as { data: { movement: { id: string; type: 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT'; quantity: string; reason: string }; balance: string } }).data;
 }
 
+export type StockBalanceLot = { id: string; identifier: string; expirationDate: string | null; unitCost: string; initialQuantity: string; currentQuantity: string; receivedAt: string; available: boolean };
+export type StockBalanceItem = { id: string; sku: string; name: string; unit: ProductListItem['unit']; stockMode: ProductListItem['stockMode']; status: ProductListItem['status']; physicalBalance: string; availableBalance: string; lots: StockBalanceLot[] };
+export async function getStockBalances(params: { page: number; pageSize: number }): Promise<{ products: StockBalanceItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  const response = await fetch(`${apiUrl('/stock/balances')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível consultar os saldos de estoque.');
+  return (await response.json() as { data: { products: StockBalanceItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
+}
+
+export type StockExitInput = { productId: string; quantity: number; reason: string };
+export type StockExitResult = { movements: Array<{ id: string; lotId: string | null; lotIdentifier: string | null; quantity: string }>; physicalBalance: string; availableBalance: string };
+export async function recordStockExit(payload: StockExitInput): Promise<StockExitResult> {
+  const response = await fetch(apiUrl('/stock/exits'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return entryError(response, 'Não foi possível registrar a saída de estoque.');
+  return (await response.json() as { data: StockExitResult }).data;
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {
