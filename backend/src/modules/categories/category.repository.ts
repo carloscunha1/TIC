@@ -9,6 +9,8 @@ export type CategoryListResult = { categories: Category[]; total: number };
 export interface CategoryRepository {
   create(data: CreateCategoryData): Promise<Category>;
   list(filters: CategoryListFilters): Promise<CategoryListResult>;
+  findById(id: string): Promise<Category | null>;
+  update(id: string, data: { name: string; description?: string; actorUserId: string; ipAddress?: string }): Promise<Category>;
 }
 
 export class PrismaCategoryRepository implements CategoryRepository {
@@ -38,5 +40,19 @@ export class PrismaCategoryRepository implements CategoryRepository {
       prisma.category.count({ where }),
     ]);
     return { categories, total };
+  }
+
+  findById(id: string): Promise<Category | null> {
+    return prisma.category.findUnique({ where: { id } });
+  }
+
+  update(id: string, data: { name: string; description?: string; actorUserId: string; ipAddress?: string }): Promise<Category> {
+    return prisma.$transaction(async (transaction) => {
+      const before = await transaction.category.findUnique({ where: { id } });
+      if (!before) throw new Error('CATEGORY_NOT_FOUND');
+      const category = await transaction.category.update({ where: { id }, data: { description: data.description, name: data.name } });
+      await this.auditService.record({ actor: { type: 'USER', userId: data.actorUserId }, action: 'CATEGORY_UPDATED', before, after: category, entity: 'Category', entityId: id, ipAddress: data.ipAddress }, transaction);
+      return category;
+    });
   }
 }
