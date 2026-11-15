@@ -7,6 +7,7 @@ import type { SessionRepository } from './session.repository.js';
 import type { UserRepository } from './user.repository.js';
 
 const SESSION_DURATION_SECONDS = 30 * 60;
+const SESSION_TOKEN_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const DUMMY_PASSWORD = randomBytes(32).toString('hex');
 const dummyPasswordHashPromise = bcrypt.hash(DUMMY_PASSWORD, 12);
 
@@ -39,7 +40,7 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + SESSION_DURATION_SECONDS * 1000);
     const sessionId = randomUUID();
     const token = jwt.sign({ sid: sessionId, sub: user.id }, this.dependencies.jwtSecret, {
-      expiresIn: SESSION_DURATION_SECONDS,
+      expiresIn: SESSION_TOKEN_MAX_AGE_SECONDS,
     });
 
     await this.dependencies.sessionRepository.create({

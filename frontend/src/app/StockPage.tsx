@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
-import { getStockBalances, listProducts, recordStockAdjustment, recordStockExit, type ProductListItem, type StockAdjustmentInput, type StockExitInput } from '@/lib/api';
+import { createCustomStockLossReason, getStockBalances, listCustomStockLossReasons, listProductLotsForLoss, listProducts, listStockLossReasons, recordStockAdjustment, recordStockExit, recordStockLoss, updateCustomStockLossReason, type ProductListItem, type StockAdjustmentInput, type StockExitInput, type StockLossInput } from '@/lib/api';
+import { useAuth } from '@/app/auth-context';
 
 const quantitySchema = z.number().finite().positive('Informe uma quantidade maior que zero.').max(999_999_999.999).refine((value) => Number(value.toFixed(3)) === value, 'Quantidade aceita até 3 casas decimais.');
 const adjustmentSchema = z.object({
@@ -18,8 +19,16 @@ const exitSchema = z.object({
   quantity: quantitySchema,
   reason: z.string().trim().min(1, 'O motivo é obrigatório.').max(300, 'O motivo deve ter até 300 caracteres.'),
 });
+const lossSchema = z.object({
+  productId: z.string().min(1, 'Selecione um produto.'),
+  reasonId: z.string().min(1, 'Selecione um motivo.'),
+  quantity: quantitySchema,
+  lotId: z.string().optional(),
+  observations: z.string().trim().max(500, 'A observação deve ter até 500 caracteres.'),
+});
 type AdjustmentForm = z.infer<typeof adjustmentSchema>;
 type ExitForm = z.infer<typeof exitSchema>;
+type LossForm = z.infer<typeof lossSchema>;
 
 function quantity(value: string): string {
   return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
@@ -30,15 +39,23 @@ function dateLabel(value: string | null): string {
 }
 
 export function StockPage() {
+  const { hasPermission } = useAuth();
+  const canManageReasons = hasPermission('settings.manage');
   const client = useQueryClient();
   const [page, setPage] = useState(1);
   const [productSearch, setProductSearch] = useState('');
   const products = useQuery({ queryKey: ['products', 'stock-operations', productSearch], queryFn: () => listProducts({ page: 1, pageSize: 100, search: productSearch || undefined }) });
   const balances = useQuery({ queryKey: ['stock-balances', page], queryFn: () => getStockBalances({ page, pageSize: 20 }) });
+  const lossReasons = useQuery({ queryKey: ['stock-loss-reasons'], queryFn: listStockLossReasons });
+  const customReasons = useQuery({ queryKey: ['stock-loss-reasons', 'custom'], queryFn: listCustomStockLossReasons, enabled: canManageReasons });
   const adjustmentForm = useForm<AdjustmentForm>({ resolver: zodResolver(adjustmentSchema), defaultValues: { productId: '', direction: 'POSITIVE', quantity: 1, justification: '' } });
   const exitForm = useForm<ExitForm>({ resolver: zodResolver(exitSchema), defaultValues: { productId: '', quantity: 1, reason: '' } });
+  const lossForm = useForm<LossForm>({ resolver: zodResolver(lossSchema), defaultValues: { productId: '', reasonId: '', quantity: 1, lotId: '', observations: '' } });
   const adjustmentProduct = products.data?.products.find((product: ProductListItem) => product.id === adjustmentForm.watch('productId'));
   const exitProduct = products.data?.products.find((product: ProductListItem) => product.id === exitForm.watch('productId'));
+  const lossProduct = products.data?.products.find((product: ProductListItem) => product.id === lossForm.watch('productId'));
+  const lossLots = useQuery({ queryKey: ['stock-loss-lots', lossProduct?.id], queryFn: () => listProductLotsForLoss(lossProduct!.id), enabled: lossProduct?.stockMode === 'LOTE' });
+  const lossProductLots = lossLots.data ?? [];
   const adjustmentMutation = useMutation({
     mutationFn: (values: StockAdjustmentInput) => recordStockAdjustment(values),
     onSuccess: async () => { await Promise.all([client.invalidateQueries({ queryKey: ['products'] }), client.invalidateQueries({ queryKey: ['stock-balances'] })]); adjustmentForm.reset({ productId: adjustmentForm.getValues('productId'), direction: 'POSITIVE', quantity: 1, justification: '' }); },
@@ -47,6 +64,12 @@ export function StockPage() {
     mutationFn: (values: StockExitInput) => recordStockExit(values),
     onSuccess: async () => { await Promise.all([client.invalidateQueries({ queryKey: ['products'] }), client.invalidateQueries({ queryKey: ['stock-balances'] })]); exitForm.reset({ productId: exitForm.getValues('productId'), quantity: 1, reason: '' }); },
   });
+  const lossMutation = useMutation({
+    mutationFn: (values: StockLossInput) => recordStockLoss(values),
+    onSuccess: async () => { await Promise.all([client.invalidateQueries({ queryKey: ['products'] }), client.invalidateQueries({ queryKey: ['stock-balances'] })]); lossForm.reset({ productId: lossForm.getValues('productId'), reasonId: lossForm.getValues('reasonId'), quantity: 1, lotId: '', observations: '' }); },
+  });
+  const createReasonMutation = useMutation({ mutationFn: createCustomStockLossReason, onSuccess: async () => { await Promise.all([client.invalidateQueries({ queryKey: ['stock-loss-reasons'] }), client.invalidateQueries({ queryKey: ['stock-loss-reasons', 'custom'] })]); } });
+  const updateReasonMutation = useMutation({ mutationFn: ({ id, ...payload }: { id: string; name?: string; isActive?: boolean }) => updateCustomStockLossReason(id, payload), onSuccess: async () => { await Promise.all([client.invalidateQueries({ queryKey: ['stock-loss-reasons'] }), client.invalidateQueries({ queryKey: ['stock-loss-reasons', 'custom'] })]); } });
 
   useEffect(() => {
     if (adjustmentProduct?.unit === 'UN' && !Number.isInteger(adjustmentForm.getValues('quantity'))) adjustmentForm.setValue('quantity', Math.floor(adjustmentForm.getValues('quantity')) || 1, { shouldValidate: true });
@@ -57,9 +80,10 @@ export function StockPage() {
 
   const submitAdjustment = adjustmentForm.handleSubmit((values) => adjustmentMutation.mutate({ ...values, quantity: Number(values.quantity) }));
   const submitExit = exitForm.handleSubmit((values) => exitMutation.mutate({ ...values, quantity: Number(values.quantity) }));
+  const submitLoss = lossForm.handleSubmit((values) => lossMutation.mutate({ productId: values.productId, reasonId: values.reasonId, quantity: Number(values.quantity), ...(values.lotId ? { lotId: values.lotId } : {}), ...(values.observations ? { observations: values.observations } : {}) }));
 
   return <section aria-labelledby="stock-title">
-    <div className="mb-6"><p className="text-sm font-semibold text-[#0045B5]">Operação</p><h1 id="stock-title" className="mt-1 text-2xl font-bold">Estoque</h1><p className="mt-2 text-sm text-slate-500">Consulte saldos físicos e disponíveis, registre ajustes simples e saídas comuns.</p></div>
+    <div className="mb-6"><p className="text-sm font-semibold text-[#0045B5]">Operação</p><h1 id="stock-title" className="mt-1 text-2xl font-bold">Estoque</h1><p className="mt-2 text-sm text-slate-500">Consulte saldos físicos e disponíveis, registre ajustes, saídas e perdas.</p></div>
 
     <section aria-labelledby="stock-balances-title" className="mb-8">
       <h2 id="stock-balances-title" className="mb-3 text-lg font-semibold">Saldos por produto e lote</h2>
@@ -102,6 +126,23 @@ export function StockPage() {
         </form>
       </section>
     </div>
+
+    <section aria-labelledby="stock-loss-title" className="mt-6 max-w-2xl rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <h2 id="stock-loss-title" className="text-lg font-semibold">Registrar perda</h2><p className="mb-4 mt-1 text-sm text-slate-500">A baixa fica registrada como perda, separada de ajustes. Para produtos por lote, selecione o lote; lotes vencidos também podem ser baixados.</p>
+      {lossMutation.isError && <p role="alert" className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{lossMutation.error.message}</p>}
+      {lossMutation.isSuccess && <p role="status" className="mb-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Perda registrada. Movimento: {lossMutation.data.movement.id}.</p>}
+      {lossReasons.isError && <p role="alert" className="mb-3 text-sm text-red-700">{lossReasons.error.message}</p>}
+      <form className="space-y-4" onSubmit={submitLoss} noValidate>
+        <label htmlFor="loss-product" className="block text-sm font-medium">Produto *<select id="loss-product" className="mt-1.5 w-full rounded-lg border px-3 py-2 dark:border-slate-700 dark:bg-slate-950" {...lossForm.register('productId', { onChange: () => lossForm.setValue('lotId', '') })}><option value="">Selecione um produto</option>{products.data?.products.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.stockMode === 'LOTE' ? 'por lote' : 'simples'} · {product.status === 'ACTIVE' ? 'ativo' : 'inativo'}</option>)}</select></label>
+        {lossForm.formState.errors.productId && <p role="alert" className="-mt-3 text-xs text-red-700">{lossForm.formState.errors.productId.message}</p>}
+        {lossProduct?.stockMode === 'LOTE' && <label htmlFor="loss-lot" className="block text-sm font-medium">Lote *<select id="loss-lot" className="mt-1.5 w-full rounded-lg border px-3 py-2 dark:border-slate-700 dark:bg-slate-950" {...lossForm.register('lotId')}><option value="">Selecione um lote</option>{lossProductLots.map((lot) => <option key={lot.id} value={lot.id}>Lote {lot.identifier} · {quantity(lot.currentQuantity)} {lossProduct.unit} · validade {dateLabel(lot.expirationDate)}{lot.available ? '' : ' · vencido'}</option>)}</select>{lossLots.isError && <span role="alert" className="mt-1 block text-xs text-red-700">{lossLots.error.message}</span>}</label>}
+        <div className="grid gap-4 sm:grid-cols-2"><label htmlFor="loss-reason" className="text-sm font-medium">Motivo *<select id="loss-reason" className="mt-1.5 w-full rounded-lg border px-3 py-2 dark:border-slate-700 dark:bg-slate-950" {...lossForm.register('reasonId')}><option value="">Selecione um motivo</option>{lossReasons.data?.map((reason) => <option key={reason.id} value={reason.id}>{reason.name}</option>)}</select>{lossForm.formState.errors.reasonId && <span role="alert" className="mt-1 block text-xs text-red-700">{lossForm.formState.errors.reasonId.message}</span>}</label><label htmlFor="loss-quantity" className="text-sm font-medium">Quantidade *<input id="loss-quantity" type="number" min={lossProduct?.unit === 'UN' ? 1 : 0.001} step={lossProduct?.unit === 'UN' ? 1 : 0.001} className="mt-1.5 w-full rounded-lg border px-3 py-2 dark:border-slate-700 dark:bg-slate-950" {...lossForm.register('quantity', { valueAsNumber: true })} />{lossForm.formState.errors.quantity && <span role="alert" className="mt-1 block text-xs text-red-700">{lossForm.formState.errors.quantity.message}</span>}</label></div>
+        <label htmlFor="loss-observations" className="block text-sm font-medium">Observações (quando necessário)<textarea id="loss-observations" rows={2} maxLength={500} className="mt-1.5 w-full rounded-lg border px-3 py-2 dark:border-slate-700 dark:bg-slate-950" {...lossForm.register('observations')} /></label>
+        <button type="submit" disabled={lossMutation.isPending || lossReasons.isLoading || lossLots.isLoading || !products.data?.products.length || (lossProduct?.stockMode === 'LOTE' && lossProductLots.length === 0)} className="rounded-lg bg-[#0045B5] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">{lossMutation.isPending ? 'Registrando…' : 'Registrar perda'}</button>
+      </form>
+    </section>
+
+    {canManageReasons && <section aria-labelledby="loss-reasons-admin-title" className="mt-6 max-w-2xl rounded-xl border bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><h2 id="loss-reasons-admin-title" className="text-lg font-semibold">Motivos customizados</h2><form className="my-4 flex gap-2" onSubmit={(event) => { event.preventDefault(); const form = event.currentTarget; const input = new FormData(form).get('reasonName'); if (typeof input === 'string' && input.trim()) createReasonMutation.mutate(input.trim(), { onSuccess: () => form.reset() }); }}><label className="sr-only" htmlFor="custom-loss-reason-name">Novo motivo</label><input id="custom-loss-reason-name" name="reasonName" minLength={2} maxLength={120} required placeholder="Nome do motivo" className="min-w-0 flex-1 rounded-lg border px-3 py-2 dark:border-slate-700 dark:bg-slate-950"/><button type="submit" disabled={createReasonMutation.isPending} className="rounded-lg bg-[#0045B5] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">Adicionar</button></form>{(createReasonMutation.isError || updateReasonMutation.isError) && <p role="alert" className="mb-3 text-sm text-red-700">{(createReasonMutation.error ?? updateReasonMutation.error)?.message}</p>}{customReasons.data?.length === 0 && <p className="text-sm text-slate-500">Nenhum motivo customizado cadastrado.</p>}<ul className="space-y-2">{customReasons.data?.map((reason) => <li key={reason.id} className="flex items-center justify-between gap-3 border-t pt-2 text-sm"><span>{reason.name} · {reason.isActive ? 'Ativo' : 'Inativo'}</span><div className="flex gap-3"><button type="button" className="font-semibold text-[#0045B5]" onClick={() => { const name = window.prompt('Novo nome do motivo', reason.name); if (name?.trim() && name.trim() !== reason.name) updateReasonMutation.mutate({ id: reason.id, name: name.trim() }); }}>Editar</button><button type="button" disabled={updateReasonMutation.isPending} className="font-semibold text-slate-600 disabled:opacity-50" onClick={() => updateReasonMutation.mutate({ id: reason.id, isActive: !reason.isActive })}>{reason.isActive ? 'Inativar' : 'Reativar'}</button></div></li>)}</ul></section>}
     <div className="mt-6"><Link to="/produtos" className="text-sm font-semibold text-[#0045B5]">Voltar aos produtos</Link></div>
   </section>;
 }

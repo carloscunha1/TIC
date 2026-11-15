@@ -130,6 +130,39 @@ export async function recordStockExit(payload: StockExitInput): Promise<StockExi
   return (await response.json() as { data: StockExitResult }).data;
 }
 
+export type StockLossReason = { id: string; name: string };
+export type CustomStockLossReason = StockLossReason & { isActive: boolean };
+export type StockLossInput = { productId: string; reasonId: string; quantity: number; lotId?: string; observations?: string };
+export type StockLossLot = { id: string; identifier: string; expirationDate: string | null; currentQuantity: string; available: boolean };
+export async function listProductLotsForLoss(productId: string): Promise<StockLossLot[]> {
+  const response = await fetch(apiUrl(`/stock/products/${productId}/lots`), { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível consultar os lotes do produto.');
+  return (await response.json() as { data: { lots: StockLossLot[] } }).data.lots;
+}
+export async function listStockLossReasons(): Promise<StockLossReason[]> {
+  const response = await fetch(apiUrl('/stock/loss-reasons'), { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível consultar os motivos de perda.');
+  return (await response.json() as { data: { reasons: StockLossReason[] } }).data.reasons;
+}
+export async function recordStockLoss(payload: StockLossInput): Promise<{ movement: { id: string; type: 'LOSS'; reason: string; quantity: string }; balance?: string }> {
+  const response = await fetch(apiUrl('/stock/losses'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return entryError(response, 'Não foi possível registrar a perda.');
+  return (await response.json() as { data: { movement: { id: string; type: 'LOSS'; reason: string; quantity: string }; balance?: string } }).data;
+}
+export async function listCustomStockLossReasons(): Promise<CustomStockLossReason[]> {
+  const response = await fetch(apiUrl('/stock/loss-reasons/custom'), { credentials: 'include' });
+  if (!response.ok) return entryError(response, 'Não foi possível consultar os motivos customizados.');
+  return (await response.json() as { data: { reasons: CustomStockLossReason[] } }).data.reasons;
+}
+export async function createCustomStockLossReason(name: string): Promise<void> {
+  const response = await fetch(apiUrl('/stock/loss-reasons/custom'), { body: JSON.stringify({ name }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return entryError(response, 'Não foi possível criar o motivo customizado.');
+}
+export async function updateCustomStockLossReason(id: string, payload: { name?: string; isActive?: boolean }): Promise<void> {
+  const response = await fetch(apiUrl(`/stock/loss-reasons/custom/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) return entryError(response, 'Não foi possível atualizar o motivo customizado.');
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {
