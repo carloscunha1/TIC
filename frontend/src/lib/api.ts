@@ -106,6 +106,13 @@ export async function cancelEntry(id: string, justification: string): Promise<{ 
   return (await response.json() as { data: { entry: EntryView; reversals: Array<{ productId: string; lotId: string | null; quantity: string }> } }).data;
 }
 
+export type StockAdjustmentInput = { productId: string; direction: 'POSITIVE' | 'NEGATIVE'; quantity: number; justification: string };
+export async function recordStockAdjustment(payload: StockAdjustmentInput): Promise<{ movement: { id: string; type: 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT'; quantity: string; reason: string }; balance: string }> {
+  const response = await fetch(apiUrl('/stock/adjustments'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return entryError(response, 'Não foi possível registrar o ajuste de estoque.');
+  return (await response.json() as { data: { movement: { id: string; type: 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT'; quantity: string; reason: string }; balance: string } }).data;
+}
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api/v1').replace(/\/$/, '');
 
 function apiUrl(path: string): string {
