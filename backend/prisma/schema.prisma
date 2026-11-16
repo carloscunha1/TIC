@@ -76,6 +76,11 @@ enum InventoryStatus {
   CANCELADO
 }
 
+enum CustomerStatus {
+  PENDING_PIN
+  ACTIVE
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -100,6 +105,7 @@ model User {
   entries        Entry[]
   stockLossReasons StockLossReason[]
   inventories      Inventory[]
+  createdCustomers Customer[]
 
   @@index([status])
   @@map("users")
@@ -302,6 +308,22 @@ model Supplier {
 
   @@index([status])
   @@map("suppliers")
+}
+
+model Customer {
+  id                            String         @id @default(uuid()) @db.Uuid
+  name                          String         @db.VarChar(160)
+  phone                         String         @unique @db.VarChar(20)
+  status                        CustomerStatus @default(PENDING_PIN)
+  privacyNoticeAcknowledgedAt   DateTime       @map("privacy_notice_acknowledged_at") @db.Timestamptz(3)
+  createdById                   String         @map("created_by_id") @db.Uuid
+  createdAt                     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy                     User           @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([status, name])
+  @@index([createdById])
+  @@map("customers")
 }
 
 model Entry {

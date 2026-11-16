@@ -43,6 +43,13 @@ export async function createSupplier(payload: { name: string; document?: string;
   if (!response.ok) { const error = (await response.json().catch(() => null)) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível criar o fornecedor.'); }
 }
 
+export type CustomerView = { id: string; name: string; phone: string; status: 'PENDING_PIN' | 'ACTIVE'; privacyNoticeAcknowledgedAt: string; createdAt: string; updatedAt: string };
+export async function createCustomer(payload: { name: string; phone: string; privacyNoticeAcknowledged: boolean }, quick = false): Promise<CustomerView> {
+  const response = await fetch(apiUrl(`/customers${quick ? '/quick' : ''}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível cadastrar o cliente.'); }
+  return (await response.json() as { data: { customer: CustomerView } }).data.customer;
+}
+
 export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
 export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
