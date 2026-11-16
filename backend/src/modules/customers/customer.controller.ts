@@ -6,9 +6,18 @@ import { CustomerService } from './customer.service.js';
 import { createCustomerSchema, customerIdParamsSchema, customerStatusSchema, updateCustomerSchema } from './customer.schemas.js';
 import { CustomerListService } from './customer.list.service.js';
 import { listCustomersQuerySchema } from './customer.list.schemas.js';
+import { CustomerAuthService } from './customer-auth.service.js';
+import { PrismaCustomerAuthRepository } from './customer-auth.repository.js';
 
 const customerService = new CustomerService(new PrismaCustomerRepository(new AuditService(new PrismaAuditRepository())));
 const customerListService = new CustomerListService(new PrismaCustomerRepository(new AuditService(new PrismaAuditRepository())));
+const customerAuthService = new CustomerAuthService(new PrismaCustomerAuthRepository(new AuditService(new PrismaAuditRepository())));
+
+export async function startCustomerPinSetup(request: Request, response: Response): Promise<void> {
+  const { id } = customerIdParamsSchema.parse(request.params);
+  const result = await customerAuthService.startPinSetup(id, response.locals.auth.userId, request.ip);
+  response.status(200).json({ success: true, data: result, requestId: response.locals.requestId });
+}
 
 export async function listCustomers(request: Request, response: Response): Promise<void> {
   const query = listCustomersQuerySchema.parse(request.query);

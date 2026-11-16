@@ -10,6 +10,7 @@ import { entryRouter } from './modules/entries/entry.routes.js';
 import { stockRouter } from './modules/stock/stock.routes.js';
 import { inventoryRouter } from './modules/inventories/inventory.routes.js';
 import { customerRouter } from './modules/customers/customer.routes.js';
+import { customerAuthRouter } from './modules/customers/customer-auth.routes.js';
 import { ApiError } from './shared/http/api-error.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
@@ -122,6 +123,7 @@ app.use('/api/v1/entries', entryRouter);
 app.use('/api/v1/stock', stockRouter);
 app.use('/api/v1/inventories', inventoryRouter);
 app.use('/api/v1/customers', customerRouter);
+app.use('/api/v1/customer-auth', customerAuthRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({
