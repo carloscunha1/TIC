@@ -25,6 +25,7 @@ import { EditCustomerPage } from '@/app/EditCustomerPage';
 import { CustomerLoginPage } from '@/app/CustomerLoginPage';
 import { CustomerPinSetupPage } from '@/app/CustomerPinSetupPage';
 import { LoyaltyPolicyPage } from '@/app/LoyaltyPolicyPage';
+import { LoyaltyOperationsPage } from '@/app/LoyaltyOperationsPage';
 
 export const router = createBrowserRouter([
   {
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
       { path: '/clientes/novo', element: <CreateCustomerPage /> },
       { path: '/clientes/:id/editar', element: <EditCustomerPage /> },
       { path: '/fidelidade/politica', element: <LoyaltyPolicyPage /> },
+      { path: '/fidelidade/operacoes', element: <LoyaltyOperationsPage /> },
       {
         path: '/fornecedores/:id/editar',
         element: <EditSupplierPage />,

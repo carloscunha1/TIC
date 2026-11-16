@@ -13,7 +13,8 @@
     "prisma:migrate": "node --env-file=../.env ../node_modules/.bin/prisma migrate dev --name init",
     "prisma:deploy": "node --env-file=../.env ../node_modules/.bin/prisma migrate deploy",
     "db:check": "node --env-file=../.env --import tsx src/infrastructure/database/check-connection.ts",
-    "db:bootstrap": "node --env-file=../.env --import tsx src/infrastructure/database/run-bootstrap.ts"
+    "db:bootstrap": "node --env-file=../.env --import tsx src/infrastructure/database/run-bootstrap.ts",
+    "loyalty:expire": "node --env-file=../.env --import tsx src/modules/loyalty/expire-due-credits.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

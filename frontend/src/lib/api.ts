@@ -110,6 +110,35 @@ export async function updateLoyaltyPolicy(input: { expectedVersion: number; poin
   return (await response.json() as { data: { policy: LoyaltyPolicyView; changed: boolean } }).data;
 }
 
+export type LoyaltyBalance = { availablePoints: number; debtPoints: number };
+export type LoyaltyAwardResult = { credit: { id: string; pointsGranted: number; expiresAt: string }; pointsGranted: number; pointsCompensated: number; pointsAvailable: number };
+export type LoyaltyRedemptionResult = { movement: { id: string; pointsDelta: number }; pointsRedeemed: number; redemptionValueCents: string };
+export type LoyaltyReversalResult = { movement: { id: string; pointsDelta: number } | null; pointsReversed?: number; pointsDebtCreated?: number; pointsRestored?: number; pointsExpiredImmediately?: number };
+
+async function loyaltyMutation<T>(path: string, payload: Record<string, unknown>, fallback: string): Promise<T> {
+  const response = await fetch(apiUrl(path), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? fallback); }
+  return (await response.json() as { data: T }).data;
+}
+
+export async function getLoyaltyBalance(customerId: string): Promise<LoyaltyBalance> {
+  const response = await fetch(apiUrl(`/loyalty/customers/${customerId}/balance`), { credentials: 'include' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível consultar o saldo de pontos.'); }
+  return (await response.json() as { data: LoyaltyBalance }).data;
+}
+export function awardLoyaltyPoints(payload: { customerId: string; sourceType: string; sourceId: string; eligibleAmount: string }): Promise<LoyaltyAwardResult> {
+  return loyaltyMutation('/loyalty/awards', payload, 'Não foi possível conceder os pontos.');
+}
+export function redeemLoyaltyPoints(payload: { customerId: string; sourceType: string; sourceId: string; points: number }): Promise<LoyaltyRedemptionResult> {
+  return loyaltyMutation('/loyalty/redemptions', payload, 'Não foi possível resgatar os pontos.');
+}
+export function reverseLoyaltyAward(payload: { customerId: string; sourceType: string; sourceId: string; creditId: string; points?: number }): Promise<LoyaltyReversalResult> {
+  return loyaltyMutation('/loyalty/award-reversals', payload, 'Não foi possível estornar a concessão.');
+}
+export function reverseLoyaltyRedemption(payload: { customerId: string; sourceType: string; sourceId: string; movementId: string; points?: number }): Promise<LoyaltyReversalResult> {
+  return loyaltyMutation('/loyalty/redemption-reversals', payload, 'Não foi possível estornar o resgate.');
+}
+
 export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
 export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });

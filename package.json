@@ -2,8 +2,11 @@
   "name": "tic",
   "version": "0.1.0",
   "private": true,
-  "description": "Sistema de gestão da Conveniência do Posto Paulo VI",
-  "workspaces": ["backend", "frontend"],
+  "description": "Sistema de gest\u00e3o da Conveni\u00eancia do Posto Paulo VI",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
@@ -25,7 +28,10 @@
     "db:migrate": "npm run prisma:migrate --workspace backend",
     "db:deploy": "npm run prisma:deploy --workspace backend",
     "db:check": "npm run db:check --workspace backend",
-    "db:bootstrap": "npm run db:bootstrap --workspace backend"
+    "db:bootstrap": "npm run db:bootstrap --workspace backend",
+    "loyalty:expire": "npm run loyalty:expire --workspace backend"
   },
-  "engines": { "node": "24.15.0" }
+  "engines": {
+    "node": "24.15.0"
+  }
 }

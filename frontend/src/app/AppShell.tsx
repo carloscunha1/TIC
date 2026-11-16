@@ -33,6 +33,7 @@ const navigation = [
   { label: 'Vendas', icon: ShoppingCart, permission: 'sales.manage', to: '/vendas' },
   { label: 'Clientes', icon: Users, permission: 'customers.manage', to: '/clientes' },
   { label: 'Política de pontos', icon: Coins, permission: 'loyalty-policy.manage', to: '/fidelidade/politica' },
+  { label: 'Operações de pontos', icon: Coins, permission: 'loyalty.read', to: '/fidelidade/operacoes' },
   { label: 'Relatórios', icon: ChartNoAxesCombined, permission: 'reports.read', to: '/relatorios' },
   { label: 'Usuários', icon: Users, permission: 'users.manage', to: '/usuarios' },
   { label: 'Configurações', icon: Settings, permission: 'settings.manage', to: '/configuracoes' },

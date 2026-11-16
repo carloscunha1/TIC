@@ -29,3 +29,18 @@ describe('unknown routes', () => {
     expect(response.body.stack).toBeUndefined();
   });
 });
+
+describe('loyalty routes', () => {
+  it('requires an authenticated administrative session', async () => {
+    const responses = await Promise.all([
+      request(app).get('/api/v1/loyalty/customers/00000000-0000-4000-8000-000000000000/balance'),
+      request(app).post('/api/v1/loyalty/awards').send({}),
+      request(app).post('/api/v1/loyalty/redemptions').send({}),
+      request(app).post('/api/v1/loyalty/award-reversals').send({}),
+      request(app).post('/api/v1/loyalty/redemption-reversals').send({}),
+    ]);
+
+    expect(responses.map((response) => response.status)).toEqual([401, 401, 401, 401, 401]);
+    expect(responses.every((response) => response.body.code === 'INVALID_SESSION')).toBe(true);
+  });
+});

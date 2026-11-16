@@ -94,6 +94,7 @@ enum LoyaltyAllocationType {
   CONSUME
   RESTORE
   REVERSE
+  COMPENSATE
 }
 
 enum AuditActorType {
@@ -398,7 +399,8 @@ model LoyaltyCredit {
   createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   customer                 Customer @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   policy                   LoyaltyPolicy @relation(fields: [policyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  creditMovement           LoyaltyMovement?
+  creditMovement           LoyaltyMovement?  @relation("LoyaltyCreditMovement")
+  reversalMovements        LoyaltyMovement[] @relation("ReversedLoyaltyCredit")
   allocations              LoyaltyAllocation[]
 
   @@unique([sourceType, sourceId])
@@ -413,17 +415,20 @@ model LoyaltyMovement {
   customerId        String              @map("customer_id") @db.Uuid
   type              LoyaltyMovementType
   pointsDelta       Int                 @map("points_delta")
+  redemptionValueCents BigInt?            @map("redemption_value_cents")
   sourceType        String              @map("source_type") @db.VarChar(40)
   sourceId          String?             @map("source_id") @db.VarChar(100)
   reason            String?             @db.VarChar(300)
   creditId          String?             @unique @map("credit_id") @db.Uuid
   reversalOfId      String?             @map("reversal_of_id") @db.Uuid
+  reversalOfCreditId String?            @map("reversal_of_credit_id") @db.Uuid
   actorUserId       String?             @map("actor_user_id") @db.Uuid
   createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   customer          Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  credit            LoyaltyCredit?      @relation(fields: [creditId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  credit            LoyaltyCredit?      @relation("LoyaltyCreditMovement", fields: [creditId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   reversalOf        LoyaltyMovement?   @relation("LoyaltyMovementReversals", fields: [reversalOfId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   reversals         LoyaltyMovement[]   @relation("LoyaltyMovementReversals")
+  reversalOfCredit  LoyaltyCredit?      @relation("ReversedLoyaltyCredit", fields: [reversalOfCreditId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   actorUser         User?               @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   allocations       LoyaltyAllocation[]
 
