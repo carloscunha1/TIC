@@ -32,6 +32,6 @@ describe('CustomerListService', () => {
   it('rejects invalid pagination and status filters', () => {
     expect(() => listCustomersQuerySchema.parse({ page: '0' })).toThrow();
     expect(() => listCustomersQuerySchema.parse({ pageSize: '101' })).toThrow();
-    expect(() => listCustomersQuerySchema.parse({ status: 'INACTIVE' })).toThrow();
+    expect(listCustomersQuerySchema.parse({ status: 'INACTIVE' }).status).toBe('INACTIVE');
   });
 });

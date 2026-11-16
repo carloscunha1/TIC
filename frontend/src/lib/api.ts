@@ -43,7 +43,7 @@ export async function createSupplier(payload: { name: string; document?: string;
   if (!response.ok) { const error = (await response.json().catch(() => null)) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível criar o fornecedor.'); }
 }
 
-export type CustomerView = { id: string; name: string; phone: string; status: 'PENDING_PIN' | 'ACTIVE'; privacyNoticeAcknowledgedAt: string; createdAt: string; updatedAt: string };
+export type CustomerView = { id: string; name: string; phone: string; status: 'PENDING_PIN' | 'ACTIVE' | 'INACTIVE'; privacyNoticeAcknowledgedAt: string; createdAt: string; updatedAt: string };
 export async function createCustomer(payload: { name: string; phone: string; privacyNoticeAcknowledged: boolean }, quick = false): Promise<CustomerView> {
   const response = await fetch(apiUrl(`/customers${quick ? '/quick' : ''}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
   if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível cadastrar o cliente.'); }
@@ -67,6 +67,10 @@ export async function updateCustomer(id: string, payload: { name: string; phone:
   const response = await fetch(apiUrl(`/customers/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
   if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível atualizar o cliente.'); }
   return (await response.json() as { data: { customer: CustomerView } }).data.customer;
+}
+export async function updateCustomerStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<void> {
+  const response = await fetch(apiUrl(`/customers/${id}/status`), { body: JSON.stringify({ status }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível atualizar o status do cliente.'); }
 }
 
 export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };

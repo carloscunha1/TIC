@@ -3,7 +3,7 @@ import { PrismaAuditRepository } from '../audit/audit.repository.js';
 import { AuditService } from '../audit/audit.service.js';
 import { PrismaCustomerRepository } from './customer.repository.js';
 import { CustomerService } from './customer.service.js';
-import { createCustomerSchema, customerIdParamsSchema, updateCustomerSchema } from './customer.schemas.js';
+import { createCustomerSchema, customerIdParamsSchema, customerStatusSchema, updateCustomerSchema } from './customer.schemas.js';
 import { CustomerListService } from './customer.list.service.js';
 import { listCustomersQuerySchema } from './customer.list.schemas.js';
 
@@ -38,5 +38,12 @@ export async function updateCustomer(request: Request, response: Response): Prom
   const { id } = customerIdParamsSchema.parse(request.params);
   const input = updateCustomerSchema.parse(request.body);
   const customer = await customerService.update(id, input, response.locals.auth.userId, request.ip);
+  response.status(200).json({ success: true, data: { customer }, requestId: response.locals.requestId });
+}
+
+export async function updateCustomerStatus(request: Request, response: Response): Promise<void> {
+  const { id } = customerIdParamsSchema.parse(request.params);
+  const { status } = customerStatusSchema.parse(request.body);
+  const customer = await customerService.updateStatus(id, status, response.locals.auth.userId, request.ip);
   response.status(200).json({ success: true, data: { customer }, requestId: response.locals.requestId });
 }

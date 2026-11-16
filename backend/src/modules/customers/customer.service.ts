@@ -40,4 +40,16 @@ export class CustomerService {
       throw error;
     }
   }
+
+  async updateStatus(id: string, status: 'ACTIVE' | 'INACTIVE', actorUserId: string, ipAddress?: string) {
+    try {
+      return await this.repository.updateStatus(id, status, actorUserId, ipAddress);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'CUSTOMER_NOT_FOUND') throw new ApiError(404, 'CUSTOMER_NOT_FOUND', 'Cliente não encontrado.');
+      if (error instanceof Error && (error.message === 'CUSTOMER_ALREADY_INACTIVE' || error.message === 'CUSTOMER_NOT_INACTIVE')) {
+        throw new ApiError(409, 'CUSTOMER_INVALID_STATUS_TRANSITION', 'O cliente não permite essa alteração de status.');
+      }
+      throw error;
+    }
+  }
 }

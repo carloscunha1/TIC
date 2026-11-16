@@ -11,6 +11,7 @@ export const updateCustomerSchema = z.object({
   phone: z.string().trim().min(1, 'Informe o telefone do cliente.').max(20),
 });
 export const customerIdParamsSchema = z.object({ id: z.string().uuid() });
+export const customerStatusSchema = z.object({ status: z.enum(['ACTIVE', 'INACTIVE']) });
 
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
