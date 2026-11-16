@@ -1,6 +1,7 @@
 import type { Customer, CustomerStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../infrastructure/database/prisma.js';
 import type { AuditService } from '../audit/audit.service.js';
+import { resolveCustomerStatusTransition } from './customer.status.js';
 
 export type CreateCustomerData = {
   name: string;
@@ -20,6 +21,7 @@ export interface CustomerRepository {
   list(filters: CustomerListFilters): Promise<{ customers: CustomerListRecord[]; total: number }>;
   findById(id: string): Promise<CustomerProfile | null>;
   update(id: string, data: UpdateCustomerData): Promise<CustomerProfile>;
+  updateStatus(id: string, status: CustomerStatus, actorUserId: string, ipAddress?: string): Promise<CustomerProfile>;
 }
 
 export class PrismaCustomerRepository implements CustomerRepository {
@@ -90,6 +92,30 @@ export class PrismaCustomerRepository implements CustomerRepository {
         entity: 'Customer',
         entityId: customer.id,
         ipAddress: data.ipAddress,
+      }, transaction);
+      return customer;
+    });
+  }
+
+  updateStatus(id: string, status: CustomerStatus, actorUserId: string, ipAddress?: string): Promise<CustomerProfile> {
+    return prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw`SELECT "id" FROM "customers" WHERE "id" = ${id}::uuid FOR UPDATE`;
+      const before = await transaction.customer.findUnique({ where: { id }, select: { id: true, status: true, previousStatus: true } });
+      if (!before) throw new Error('CUSTOMER_NOT_FOUND');
+      const transition = resolveCustomerStatusTransition(before.status, before.previousStatus, status);
+      const customer = await transaction.customer.update({
+        where: { id },
+        data: transition,
+        select: { id: true, name: true, phone: true, status: true, privacyNoticeAcknowledgedAt: true, createdAt: true, updatedAt: true },
+      });
+      await this.auditService.record({
+        actor: { type: 'USER', userId: actorUserId },
+        action: 'CUSTOMER_STATUS_UPDATED',
+        before: { id: before.id, status: before.status },
+        after: { id: customer.id, status: customer.status },
+        entity: 'Customer',
+        entityId: customer.id,
+        ipAddress,
       }, transaction);
       return customer;
     });

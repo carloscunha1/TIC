@@ -5,14 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { CustomersPage } from './CustomersPage';
 
-const { listCustomers } = vi.hoisted(() => ({ listCustomers: vi.fn() }));
-vi.mock('@/lib/api', () => ({ listCustomers }));
+const { listCustomers, updateCustomerStatus } = vi.hoisted(() => ({ listCustomers: vi.fn(), updateCustomerStatus: vi.fn() }));
+vi.mock('@/lib/api', () => ({ listCustomers, updateCustomerStatus }));
 
 const firstPage = { customers: [{ id: 'customer-1', name: 'Ana Cliente', phone: '5516999999999', status: 'PENDING_PIN', createdAt: '2026-11-15T12:00:00.000Z' }], total: 25, page: 1, pageSize: 20, totalPages: 2 };
 
 describe('CustomersPage', () => {
   afterEach(() => cleanup());
-  beforeEach(() => { listCustomers.mockResolvedValue(firstPage); });
+  beforeEach(() => { listCustomers.mockResolvedValue(firstPage); updateCustomerStatus.mockResolvedValue(undefined); });
 
   function renderPage() {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -36,5 +36,15 @@ describe('CustomersPage', () => {
     await waitFor(() => expect(listCustomers).toHaveBeenLastCalledWith({ page: 1, pageSize: 20, search: undefined, status: 'PENDING_PIN' }));
     await user.click(screen.getByRole('button', { name: 'Próxima' }));
     await waitFor(() => expect(listCustomers).toHaveBeenLastCalledWith({ page: 2, pageSize: 20, search: undefined, status: 'PENDING_PIN' }));
+  });
+
+  it('inactivates a customer after confirmation', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Ana Cliente');
+    await user.click(screen.getByRole('button', { name: 'Inativar' }));
+    expect(confirm).toHaveBeenCalledWith('Deseja inativar Ana Cliente?');
+    await waitFor(() => expect(updateCustomerStatus).toHaveBeenCalledWith('customer-1', 'INACTIVE'));
   });
 });

@@ -79,6 +79,7 @@ enum InventoryStatus {
 enum CustomerStatus {
   PENDING_PIN
   ACTIVE
+  INACTIVE
 }
 
 enum AuditActorType {
@@ -315,6 +316,7 @@ model Customer {
   name                          String         @db.VarChar(160)
   phone                         String         @unique @db.VarChar(20)
   status                        CustomerStatus @default(PENDING_PIN)
+  previousStatus                CustomerStatus? @map("previous_status")
   privacyNoticeAcknowledgedAt   DateTime       @map("privacy_notice_acknowledged_at") @db.Timestamptz(3)
   createdById                   String         @map("created_by_id") @db.Uuid
   createdAt                     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
