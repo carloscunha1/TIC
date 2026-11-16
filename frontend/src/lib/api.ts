@@ -49,6 +49,15 @@ export async function createCustomer(payload: { name: string; phone: string; pri
   if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível cadastrar o cliente.'); }
   return (await response.json() as { data: { customer: CustomerView } }).data.customer;
 }
+export type CustomerListItem = Pick<CustomerView, 'id' | 'name' | 'phone' | 'status' | 'createdAt'>;
+export async function listCustomers(params: { page: number; pageSize: number; search?: string; status?: CustomerListItem['status'] }): Promise<{ customers: CustomerListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.search) query.set('search', params.search);
+  if (params.status) query.set('status', params.status);
+  const response = await fetch(`${apiUrl('/customers')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível consultar os clientes.'); }
+  return (await response.json() as { data: { customers: CustomerListItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
+}
 
 export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
 export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
