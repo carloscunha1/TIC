@@ -34,4 +34,10 @@ describe('authorization middleware', () => {
   it('allows a viewer to read products', () => {
     expect(runGuard('VIEWER', permissions.productsRead)).toBeUndefined();
   });
+
+  it('restricts loyalty policy changes to administrators', () => {
+    expect(runGuard('ADMIN', permissions.loyaltyPolicyManage)).toBeUndefined();
+    expect(runGuard('OPERATOR', permissions.loyaltyPolicyManage)).toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+    expect(runGuard('VIEWER', permissions.loyaltyPolicyManage)).toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+  });
 });

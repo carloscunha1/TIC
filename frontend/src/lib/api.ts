@@ -98,6 +98,18 @@ export async function logoutCustomer(): Promise<void> {
   if (!response.ok) throw new Error('Não foi possível encerrar a sessão.');
 }
 
+export type LoyaltyPolicyView = { id: string; version: number; pointsPerRealSpent: number; redemptionPointsPerReal: number; isActive: boolean; createdAt: string };
+export async function getLoyaltyPolicy(): Promise<{ current: LoyaltyPolicyView; history: LoyaltyPolicyView[] }> {
+  const response = await fetch(apiUrl('/loyalty/policy'), { credentials: 'include' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível carregar a política de fidelidade.'); }
+  return (await response.json() as { data: { current: LoyaltyPolicyView; history: LoyaltyPolicyView[] } }).data;
+}
+export async function updateLoyaltyPolicy(input: { expectedVersion: number; pointsPerRealSpent: number; redemptionPointsPerReal: number }): Promise<{ policy: LoyaltyPolicyView; changed: boolean }> {
+  const response = await fetch(apiUrl('/loyalty/policy'), { body: JSON.stringify(input), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível alterar a política de fidelidade.'); }
+  return (await response.json() as { data: { policy: LoyaltyPolicyView; changed: boolean } }).data;
+}
+
 export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
 export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });

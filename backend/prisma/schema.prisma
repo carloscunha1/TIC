@@ -82,6 +82,20 @@ enum CustomerStatus {
   INACTIVE
 }
 
+enum LoyaltyMovementType {
+  CREDIT
+  REDEMPTION
+  EXPIRATION
+  REVERSAL
+  COMPENSATION
+}
+
+enum LoyaltyAllocationType {
+  CONSUME
+  RESTORE
+  REVERSE
+}
+
 enum AuditActorType {
   USER
   SYSTEM
@@ -107,6 +121,8 @@ model User {
   stockLossReasons StockLossReason[]
   inventories      Inventory[]
   createdCustomers Customer[]
+  loyaltyPolicies  LoyaltyPolicy[]
+  loyaltyMovements LoyaltyMovement[]
 
   @@index([status])
   @@map("users")
@@ -328,6 +344,9 @@ model Customer {
   updatedAt                     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
   createdBy                     User           @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
   sessions                      CustomerSession[]
+  loyaltyCredits                LoyaltyCredit[]
+  loyaltyMovements              LoyaltyMovement[]
+  loyaltyAllocations            LoyaltyAllocation[]
 
   @@index([status, name])
   @@index([createdById])
@@ -347,6 +366,91 @@ model CustomerSession {
   @@index([customerId, revokedAt])
   @@index([expiresAt])
   @@map("customer_sessions")
+}
+
+model LoyaltyPolicy {
+  id                     String   @id @default(uuid()) @db.Uuid
+  version                Int      @unique
+  pointsPerRealSpent     Int      @map("points_per_real_spent")
+  redemptionPointsPerReal Int     @map("redemption_points_per_real")
+  isActive               Boolean  @default(true) @map("is_active")
+  createdByUserId        String?  @map("created_by_user_id") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdByUser          User?    @relation(fields: [createdByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  credits                LoyaltyCredit[]
+
+  @@index([isActive, version])
+  @@index([createdByUserId, createdAt])
+  @@map("loyalty_policies")
+}
+
+model LoyaltyCredit {
+  id                       String   @id @default(uuid()) @db.Uuid
+  customerId               String   @map("customer_id") @db.Uuid
+  policyId                 String   @map("policy_id") @db.Uuid
+  sourceType               String   @map("source_type") @db.VarChar(40)
+  sourceId                 String   @map("source_id") @db.VarChar(100)
+  eligibleAmount           Decimal  @map("eligible_amount") @db.Decimal(12, 2)
+  pointsGranted            Int      @map("points_granted")
+  pointsPerRealSpent       Int      @map("points_per_real_spent")
+  redemptionPointsPerReal  Int      @map("redemption_points_per_real")
+  expiresAt                DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer                 Customer @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  policy                   LoyaltyPolicy @relation(fields: [policyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creditMovement           LoyaltyMovement?
+  allocations              LoyaltyAllocation[]
+
+  @@unique([sourceType, sourceId])
+  @@unique([id, customerId])
+  @@index([customerId, expiresAt, createdAt])
+  @@index([policyId])
+  @@map("loyalty_credits")
+}
+
+model LoyaltyMovement {
+  id                String              @id @default(uuid()) @db.Uuid
+  customerId        String              @map("customer_id") @db.Uuid
+  type              LoyaltyMovementType
+  pointsDelta       Int                 @map("points_delta")
+  sourceType        String              @map("source_type") @db.VarChar(40)
+  sourceId          String?             @map("source_id") @db.VarChar(100)
+  reason            String?             @db.VarChar(300)
+  creditId          String?             @unique @map("credit_id") @db.Uuid
+  reversalOfId      String?             @map("reversal_of_id") @db.Uuid
+  actorUserId       String?             @map("actor_user_id") @db.Uuid
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer          Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  credit            LoyaltyCredit?      @relation(fields: [creditId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reversalOf        LoyaltyMovement?   @relation("LoyaltyMovementReversals", fields: [reversalOfId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reversals         LoyaltyMovement[]   @relation("LoyaltyMovementReversals")
+  actorUser         User?               @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  allocations       LoyaltyAllocation[]
+
+  @@unique([sourceType, sourceId, type])
+  @@unique([id, customerId])
+  @@index([customerId, createdAt])
+  @@index([type, createdAt])
+  @@index([reversalOfId])
+  @@index([actorUserId])
+  @@map("loyalty_movements")
+}
+
+model LoyaltyAllocation {
+  id          String                 @id @default(uuid()) @db.Uuid
+  movementId  String                 @map("movement_id") @db.Uuid
+  creditId    String                 @map("credit_id") @db.Uuid
+  customerId  String                 @map("customer_id") @db.Uuid
+  type        LoyaltyAllocationType
+  points      Int
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer    Customer               @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  movement    LoyaltyMovement        @relation(fields: [movementId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  credit      LoyaltyCredit          @relation(fields: [creditId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([movementId, creditId, type])
+  @@index([creditId, createdAt])
+  @@map("loyalty_allocations")
 }
 
 model Entry {
