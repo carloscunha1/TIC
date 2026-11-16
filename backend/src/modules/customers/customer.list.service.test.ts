@@ -11,6 +11,7 @@ describe('CustomerListService', () => {
     const repository: CustomerRepository = {
       create: jest.fn(),
       list: jest.fn(async () => ({ customers: [safeCustomer], total: 41 })),
+      findById: jest.fn(), update: jest.fn(),
     };
     const query = listCustomersQuerySchema.parse({ page: '3', pageSize: '20', search: '+55 (16) 99999-9999', status: 'PENDING_PIN' });
     const result = await new CustomerListService(repository).list(query);
@@ -21,7 +22,7 @@ describe('CustomerListService', () => {
 
   it('returns only approved fields and does not expose credential data', async () => {
     const recordWithCredential = { ...safeCustomer, pinHash: 'must-not-leak', pinFailedAttempts: 4 } as CustomerListRecord;
-    const repository: CustomerRepository = { create: jest.fn(), list: jest.fn(async () => ({ customers: [recordWithCredential], total: 1 })) };
+    const repository: CustomerRepository = { create: jest.fn(), list: jest.fn(async () => ({ customers: [recordWithCredential], total: 1 })), findById: jest.fn(), update: jest.fn() };
     const result = await new CustomerListService(repository).list(listCustomersQuerySchema.parse({}));
 
     expect(result.customers[0]).toEqual(safeCustomer);

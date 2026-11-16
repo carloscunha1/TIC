@@ -12,10 +12,14 @@ export type CreateCustomerData = {
 
 export type CustomerListFilters = { page: number; pageSize: number; search?: string; phoneSearch?: string; status?: CustomerStatus };
 export type CustomerListRecord = Pick<Customer, 'id' | 'name' | 'phone' | 'status' | 'createdAt'>;
+export type CustomerProfile = Pick<Customer, 'id' | 'name' | 'phone' | 'status' | 'privacyNoticeAcknowledgedAt' | 'createdAt' | 'updatedAt'>;
+export type UpdateCustomerData = { name: string; phone: string; actorUserId: string; ipAddress?: string };
 
 export interface CustomerRepository {
   create(data: CreateCustomerData): Promise<Customer>;
   list(filters: CustomerListFilters): Promise<{ customers: CustomerListRecord[]; total: number }>;
+  findById(id: string): Promise<CustomerProfile | null>;
+  update(id: string, data: UpdateCustomerData): Promise<CustomerProfile>;
 }
 
 export class PrismaCustomerRepository implements CustomerRepository {
@@ -64,6 +68,31 @@ export class PrismaCustomerRepository implements CustomerRepository {
       prisma.customer.count({ where }),
     ]);
     return { customers, total };
+  }
+
+  findById(id: string): Promise<CustomerProfile | null> {
+    return prisma.customer.findUnique({
+      where: { id },
+      select: { id: true, name: true, phone: true, status: true, privacyNoticeAcknowledgedAt: true, createdAt: true, updatedAt: true },
+    });
+  }
+
+  update(id: string, data: UpdateCustomerData): Promise<CustomerProfile> {
+    return prisma.$transaction(async (transaction) => {
+      const before = await transaction.customer.findUnique({ where: { id } });
+      if (!before) throw new Error('CUSTOMER_NOT_FOUND');
+      const customer = await transaction.customer.update({ where: { id }, data: { name: data.name, phone: data.phone }, select: { id: true, name: true, phone: true, status: true, privacyNoticeAcknowledgedAt: true, createdAt: true, updatedAt: true } });
+      await this.auditService.record({
+        actor: { type: 'USER', userId: data.actorUserId },
+        action: 'CUSTOMER_UPDATED',
+        before: { id: before.id, name: before.name, phone: before.phone },
+        after: { id: customer.id, name: customer.name, phone: customer.phone },
+        entity: 'Customer',
+        entityId: customer.id,
+        ipAddress: data.ipAddress,
+      }, transaction);
+      return customer;
+    });
   }
 }
 
