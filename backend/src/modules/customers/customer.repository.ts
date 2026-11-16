@@ -21,7 +21,7 @@ export interface CustomerRepository {
   list(filters: CustomerListFilters): Promise<{ customers: CustomerListRecord[]; total: number }>;
   findById(id: string): Promise<CustomerProfile | null>;
   update(id: string, data: UpdateCustomerData): Promise<CustomerProfile>;
-  updateStatus(id: string, status: CustomerStatus, actorUserId: string, ipAddress?: string): Promise<CustomerProfile>;
+  updateStatus(id: string, status: 'ACTIVE' | 'INACTIVE', actorUserId: string, ipAddress?: string): Promise<CustomerProfile>;
 }
 
 export class PrismaCustomerRepository implements CustomerRepository {
@@ -97,7 +97,7 @@ export class PrismaCustomerRepository implements CustomerRepository {
     });
   }
 
-  updateStatus(id: string, status: CustomerStatus, actorUserId: string, ipAddress?: string): Promise<CustomerProfile> {
+  updateStatus(id: string, status: 'ACTIVE' | 'INACTIVE', actorUserId: string, ipAddress?: string): Promise<CustomerProfile> {
     return prisma.$transaction(async (transaction) => {
       await transaction.$queryRaw`SELECT "id" FROM "customers" WHERE "id" = ${id}::uuid FOR UPDATE`;
       const before = await transaction.customer.findUnique({ where: { id }, select: { id: true, status: true, previousStatus: true } });

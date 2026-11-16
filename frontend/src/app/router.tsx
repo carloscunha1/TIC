@@ -22,6 +22,8 @@ import { InventoriesPage } from '@/app/InventoriesPage';
 import { CreateCustomerPage } from '@/app/CreateCustomerPage';
 import { CustomersPage } from '@/app/CustomersPage';
 import { EditCustomerPage } from '@/app/EditCustomerPage';
+import { CustomerLoginPage } from '@/app/CustomerLoginPage';
+import { CustomerPinSetupPage } from '@/app/CustomerPinSetupPage';
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +34,8 @@ export const router = createBrowserRouter([
     path: '/redefinir-senha',
     element: <ResetPasswordPage />,
   },
+  { path: '/fidelidade', element: <CustomerLoginPage /> },
+  { path: '/fidelidade/definir-pin', element: <CustomerPinSetupPage /> },
   {
     element: <ProtectedLayout />,
     children: [

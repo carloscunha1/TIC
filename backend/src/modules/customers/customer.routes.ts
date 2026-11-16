@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../auth/auth.middleware.js';
 import { requirePermission } from '../auth/authorization.middleware.js';
 import { permissions } from '../auth/permissions.js';
-import { createCustomer, getCustomer, listCustomers, quickCreateCustomer, updateCustomer, updateCustomerStatus } from './customer.controller.js';
+import { createCustomer, getCustomer, listCustomers, quickCreateCustomer, startCustomerPinSetup, updateCustomer, updateCustomerStatus } from './customer.controller.js';
 
 export const customerRouter = Router();
 customerRouter.use(requireAuth, requirePermission(permissions.customersManage));
@@ -12,3 +12,4 @@ customerRouter.post('/quick', quickCreateCustomer);
 customerRouter.get('/:id', getCustomer);
 customerRouter.patch('/:id', updateCustomer);
 customerRouter.patch('/:id/status', updateCustomerStatus);
+customerRouter.post('/:id/pin-setup', startCustomerPinSetup);

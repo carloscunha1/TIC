@@ -72,6 +72,31 @@ export async function updateCustomerStatus(id: string, status: 'ACTIVE' | 'INACT
   const response = await fetch(apiUrl(`/customers/${id}/status`), { body: JSON.stringify({ status }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
   if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível atualizar o status do cliente.'); }
 }
+export async function startCustomerPinSetup(id: string): Promise<{ setupUrl: string; expiresAt: string }> {
+  const response = await fetch(apiUrl(`/customers/${id}/pin-setup`), { method: 'POST', credentials: 'include' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível gerar o link do PIN.'); }
+  return (await response.json() as { data: { setupUrl: string; expiresAt: string } }).data;
+}
+async function customerAuthRequest(path: string, body?: unknown): Promise<Response> {
+  return fetch(apiUrl(`/customer-auth${path}`), { method: path === '/session' ? 'GET' : 'POST', credentials: 'include', ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }) });
+}
+export async function completeCustomerPinSetup(token: string, pin: string): Promise<void> {
+  const response = await customerAuthRequest('/pin-setup/complete', { token, pin });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível definir o PIN.'); }
+}
+export async function loginCustomer(phone: string, pin: string): Promise<void> {
+  const response = await customerAuthRequest('/login', { phone, pin });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Telefone ou PIN inválidos.'); }
+}
+export async function getCustomerSession(): Promise<{ customerId: string; name: string; expiresAt: string }> {
+  const response = await customerAuthRequest('/session');
+  if (!response.ok) throw new Error('Sessão inválida ou expirada.');
+  return (await response.json() as { data: { customerId: string; name: string; expiresAt: string } }).data;
+}
+export async function logoutCustomer(): Promise<void> {
+  const response = await customerAuthRequest('/logout');
+  if (!response.ok) throw new Error('Não foi possível encerrar a sessão.');
+}
 
 export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
 export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
