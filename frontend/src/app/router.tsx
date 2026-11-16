@@ -21,6 +21,7 @@ import { StockPage } from '@/app/StockPage';
 import { InventoriesPage } from '@/app/InventoriesPage';
 import { CreateCustomerPage } from '@/app/CreateCustomerPage';
 import { CustomersPage } from '@/app/CustomersPage';
+import { EditCustomerPage } from '@/app/EditCustomerPage';
 
 export const router = createBrowserRouter([
   {
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
       { path: '/inventarios', element: <InventoriesPage /> },
       { path: '/clientes', element: <CustomersPage /> },
       { path: '/clientes/novo', element: <CreateCustomerPage /> },
+      { path: '/clientes/:id/editar', element: <EditCustomerPage /> },
       {
         path: '/fornecedores/:id/editar',
         element: <EditSupplierPage />,

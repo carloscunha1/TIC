@@ -58,6 +58,16 @@ export async function listCustomers(params: { page: number; pageSize: number; se
   if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível consultar os clientes.'); }
   return (await response.json() as { data: { customers: CustomerListItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
 }
+export async function getCustomer(id: string): Promise<CustomerView> {
+  const response = await fetch(apiUrl(`/customers/${id}`), { credentials: 'include' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível carregar o cliente.'); }
+  return (await response.json() as { data: { customer: CustomerView } }).data.customer;
+}
+export async function updateCustomer(id: string, payload: { name: string; phone: string }): Promise<CustomerView> {
+  const response = await fetch(apiUrl(`/customers/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) { const error = await response.json().catch(() => null) as ApiErrorResponse | null; throw new Error(error?.message ?? 'Não foi possível atualizar o cliente.'); }
+  return (await response.json() as { data: { customer: CustomerView } }).data.customer;
+}
 
 export type SupplierListItem = { id: string; name: string; document: string | null; phone: string | null; email: string | null; notes: string | null; status: 'ACTIVE' | 'INACTIVE'; createdAt: string };
 export async function listSuppliers(params: { page: number; pageSize: number; name?: string; status?: SupplierListItem['status'] }): Promise<{ suppliers: SupplierListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
