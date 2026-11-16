@@ -1,4 +1,4 @@
-import type { Customer } from '@prisma/client';
+import type { Customer, CustomerStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../infrastructure/database/prisma.js';
 import type { AuditService } from '../audit/audit.service.js';
 
@@ -10,8 +10,12 @@ export type CreateCustomerData = {
   source: 'ADMIN' | 'QUICK';
 };
 
+export type CustomerListFilters = { page: number; pageSize: number; search?: string; phoneSearch?: string; status?: CustomerStatus };
+export type CustomerListRecord = Pick<Customer, 'id' | 'name' | 'phone' | 'status' | 'createdAt'>;
+
 export interface CustomerRepository {
   create(data: CreateCustomerData): Promise<Customer>;
+  list(filters: CustomerListFilters): Promise<{ customers: CustomerListRecord[]; total: number }>;
 }
 
 export class PrismaCustomerRepository implements CustomerRepository {
@@ -38,6 +42,28 @@ export class PrismaCustomerRepository implements CustomerRepository {
       }, transaction);
       return customer;
     });
+  }
+
+  async list(filters: CustomerListFilters): Promise<{ customers: CustomerListRecord[]; total: number }> {
+    const where: Prisma.CustomerWhereInput = {};
+    if (filters.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        ...(filters.phoneSearch ? [{ phone: { contains: filters.phoneSearch } }] : []),
+      ];
+    }
+    if (filters.status) where.status = filters.status;
+    const [customers, total] = await prisma.$transaction([
+      prisma.customer.findMany({
+        where,
+        select: { id: true, name: true, phone: true, status: true, createdAt: true },
+        orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+        skip: (filters.page - 1) * filters.pageSize,
+        take: filters.pageSize,
+      }),
+      prisma.customer.count({ where }),
+    ]);
+    return { customers, total };
   }
 }
 
