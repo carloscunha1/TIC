@@ -190,6 +190,54 @@ export async function listEntries(params: { page: number; pageSize: number }): P
   return (await response.json() as { data: { entries: EntryListItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
 }
 
+export type SaleStatus = 'EM_ANDAMENTO' | 'CONFIRMADA' | 'PARCIALMENTE_DEVOLVIDA' | 'DEVOLVIDA' | 'CANCELADA';
+export type SaleItemView = { id: string; productId: string; quantity: string; unitPrice: string; total: string; product: { id: string; name: string; sku: string; unit: ProductListItem['unit'] } };
+export type SaleView = { id: string; customerId: string | null; status: SaleStatus; observations: string | null; total: string; customer: { id: string; name: string; phone: string } | null; items: SaleItemView[]; createdAt: string; updatedAt: string };
+export type SaleListItem = { id: string; status: SaleStatus; total: string; customer: { name: string } | null; operator: { name: string }; _count: { items: number }; createdAt: string; updatedAt: string };
+export type SaleDraftInput = { customerId?: string | null; observations?: string | null; items: Array<{ productId: string; quantity: number }> };
+
+async function saleError(response: Response, fallback: string): Promise<never> {
+  const error = await response.json().catch(() => null) as { message?: string } | null;
+  throw new Error(error?.message ?? fallback);
+}
+
+export async function createSale(payload: SaleDraftInput): Promise<SaleView> {
+  const response = await fetch(apiUrl('/sales'), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return saleError(response, 'Não foi possível criar a venda.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+export async function updateSale(id: string, payload: Omit<SaleDraftInput, 'items'>): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) return saleError(response, 'Não foi possível atualizar a venda.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+export async function getSale(id: string): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}`), { credentials: 'include' });
+  if (!response.ok) return saleError(response, 'Não foi possível carregar a venda.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+export async function listSales(params: { page: number; pageSize: number }): Promise<{ sales: SaleListItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  const response = await fetch(`${apiUrl('/sales')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) return saleError(response, 'Não foi possível consultar as vendas.');
+  return (await response.json() as { data: { sales: SaleListItem[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
+}
+export async function addSaleItem(id: string, payload: { productId: string; quantity: number }): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}/items`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return saleError(response, 'Não foi possível adicionar o item.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+export async function updateSaleItem(id: string, itemId: string, quantity: number): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}/items/${itemId}`), { body: JSON.stringify({ quantity }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'PATCH' });
+  if (!response.ok) return saleError(response, 'Não foi possível alterar o item.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+export async function removeSaleItem(id: string, itemId: string): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}/items/${itemId}`), { credentials: 'include', method: 'DELETE' });
+  if (!response.ok) return saleError(response, 'Não foi possível remover o item.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+
 export async function confirmEntry(id: string): Promise<{ entry: EntryView; alreadyConfirmed: boolean }> {
   const response = await fetch(apiUrl(`/entries/${id}/confirm`), { method: 'POST', credentials: 'include' });
   if (!response.ok) return entryError(response, 'Não foi possível confirmar a entrada.');
