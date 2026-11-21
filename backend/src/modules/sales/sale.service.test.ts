@@ -21,6 +21,7 @@ function repository(overrides: Partial<SaleRepository> = {}): SaleRepository {
     list: jest.fn(async () => ({ sales: [], total: 0 })),
     confirm: jest.fn(async () => sale),
     cancel: jest.fn(async () => sale),
+    expireDrafts: jest.fn(async () => 0),
     return: jest.fn(async () => sale),
     cancelReturn: jest.fn(async () => sale),
     ...overrides,
@@ -58,8 +59,9 @@ describe('SaleService', () => {
 
   it('cancels a sale through the repository with its justification and actor', async () => {
     const repo = repository();
-    await expect(new SaleService(repo).cancel(sale.id, 'Erro de lançamento', 'user-id', '127.0.0.1')).resolves.toBe(sale);
+    await expect(new SaleService(repo).cancel(sale.id, { reason: 'ERRO_REGISTRO', justification: 'Erro de lançamento' }, 'user-id', '127.0.0.1')).resolves.toBe(sale);
     expect(repo.cancel).toHaveBeenCalledWith(sale.id, {
+      reason: 'ERRO_REGISTRO',
       justification: 'Erro de lançamento',
       actorUserId: 'user-id',
       ipAddress: '127.0.0.1',

@@ -5,8 +5,10 @@ import { PrismaLoyaltyRepository } from '../loyalty/loyalty.repository.js';
 import { LoyaltyService } from '../loyalty/loyalty.service.js';
 import type { AuditService } from '../audit/audit.service.js';
 import { includeSale, type SaleWithItems } from './sale.repository.js';
+import type { SaleCancellationReason } from './sale.repository.js';
 
 export type SaleCancellationData = {
+  reason?: SaleCancellationReason;
   justification: string;
   actorUserId: string;
   ipAddress?: string;
@@ -21,6 +23,32 @@ export class PrismaSaleCancellationRepository {
     return prisma.$transaction(async (transaction) => {
       const sale = await transaction.sale.findUnique({ where: { id }, include: includeSale });
       if (!sale) throw new ApiError(404, 'SALE_NOT_FOUND', 'Venda não encontrada.');
+      if (sale.status === 'EM_ANDAMENTO') {
+        if (!data.reason || data.reason === 'EXPIRACAO_POR_INATIVIDADE') {
+          throw new ApiError(400, 'SALE_CANCELLATION_REASON_REQUIRED', 'Informe um motivo válido para cancelar a venda em andamento.');
+        }
+        const canceled = await transaction.sale.update({
+          where: { id },
+          data: {
+            status: 'CANCELADA',
+            cancellationReason: data.reason,
+            cancellationJustification: data.justification,
+            canceledByUserId: data.actorUserId,
+            canceledAt: new Date(),
+          },
+          include: includeSale,
+        });
+        await this.auditService.record({
+          actor: { type: 'USER', userId: data.actorUserId },
+          action: 'SALE_DRAFT_CANCELLED',
+          before: { id: sale.id, status: sale.status },
+          after: { id: canceled.id, status: canceled.status, reason: data.reason, justification: data.justification },
+          entity: 'Sale',
+          entityId: id,
+          ipAddress: data.ipAddress,
+        }, transaction);
+        return canceled;
+      }
       if (sale.status === 'PARCIALMENTE_DEVOLVIDA' || sale.status === 'DEVOLVIDA') {
         throw new ApiError(409, 'SALE_PARTIALLY_RETURNED', 'Não é possível cancelar uma venda que já possui devolução.');
       }
@@ -80,6 +108,7 @@ export class PrismaSaleCancellationRepository {
         where: { id },
         data: {
           status: 'CANCELADA',
+          cancellationReason: data.reason,
           cancellationJustification: data.justification,
           canceledByUserId: data.actorUserId,
           canceledAt: new Date(),
@@ -100,6 +129,40 @@ export class PrismaSaleCancellationRepository {
         ipAddress: data.ipAddress,
       }, transaction);
       return canceled;
+    });
+  }
+
+  expireDrafts(now = new Date()): Promise<number> {
+    const expiresBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    return prisma.$transaction(async (transaction) => {
+      const candidates = await transaction.sale.findMany({
+        where: { status: 'EM_ANDAMENTO', updatedAt: { lt: expiresBefore } },
+        select: { id: true, status: true },
+      });
+      let canceledCount = 0;
+      for (const candidate of candidates) {
+        const canceled = await transaction.sale.updateMany({
+          where: { id: candidate.id, status: 'EM_ANDAMENTO', updatedAt: { lt: expiresBefore } },
+          data: {
+            status: 'CANCELADA',
+            cancellationReason: 'EXPIRACAO_POR_INATIVIDADE',
+            cancellationJustification: 'Venda cancelada automaticamente após 24 horas sem atividade.',
+            canceledByUserId: null,
+            canceledAt: now,
+          },
+        });
+        if (!canceled.count) continue;
+        canceledCount += 1;
+        await this.auditService.record({
+          actor: { type: 'SYSTEM' },
+          action: 'SALE_DRAFT_EXPIRED',
+          before: { id: candidate.id, status: candidate.status },
+          after: { id: candidate.id, status: 'CANCELADA', reason: 'EXPIRACAO_POR_INATIVIDADE' },
+          entity: 'Sale',
+          entityId: candidate.id,
+        }, transaction);
+      }
+      return canceledCount;
     });
   }
 }

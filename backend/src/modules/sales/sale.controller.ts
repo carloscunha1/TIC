@@ -70,8 +70,7 @@ export async function confirmSale(request: Request, response: Response): Promise
 
 export async function cancelSale(request: Request, response: Response): Promise<void> {
   const { id } = saleIdParamSchema.parse(request.params);
-  const { justification } = saleCancellationSchema.parse(request.body);
-  const sale = await saleService.cancel(id, justification, response.locals.auth.userId, request.ip);
+  const sale = await saleService.cancel(id, saleCancellationSchema.parse(request.body), response.locals.auth.userId, request.ip);
   response.status(200).json({ success: true, data: { sale }, requestId: response.locals.requestId });
 }
 

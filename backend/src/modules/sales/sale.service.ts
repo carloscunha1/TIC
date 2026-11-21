@@ -1,5 +1,5 @@
 import { ApiError } from '../../shared/http/api-error.js';
-import type { SaleConfirmationInput, SaleItemInput, SaleDraftInput, SaleReturnInput, SaleUpdateInput } from './sale.schemas.js';
+import type { SaleCancellationInput, SaleConfirmationInput, SaleItemInput, SaleDraftInput, SaleReturnInput, SaleUpdateInput } from './sale.schemas.js';
 import type { SaleConfirmationData, SaleRepository } from './sale.repository.js';
 
 export class SaleService {
@@ -83,8 +83,16 @@ export class SaleService {
     return this.repository.confirm(id, data);
   }
 
-  async cancel(id: string, justification: string, actorUserId: string, ipAddress?: string) {
-    return this.repository.cancel(id, { justification, actorUserId, ipAddress });
+  async cancel(id: string, input: SaleCancellationInput, actorUserId: string, ipAddress?: string) {
+    const sale = await this.repository.findById(id);
+    if (!sale) throw new ApiError(404, 'SALE_NOT_FOUND', 'Venda não encontrada.');
+    if (sale.status === 'EM_ANDAMENTO' && !input.reason) {
+      throw new ApiError(400, 'SALE_CANCELLATION_REASON_REQUIRED', 'Informe o motivo para cancelar a venda em andamento.');
+    }
+    if (input.reason === 'EXPIRACAO_POR_INATIVIDADE') {
+      throw new ApiError(400, 'INVALID_SALE_CANCELLATION_REASON', 'O motivo de expiração é reservado para a rotina automática.');
+    }
+    return this.repository.cancel(id, { ...input, actorUserId, ipAddress });
   }
 
   async return(id: string, input: SaleReturnInput, idempotencyKey: string, actorUserId: string, ipAddress?: string) {

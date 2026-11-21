@@ -13,6 +13,7 @@ export type SaleWithItems = Prisma.SaleGetPayload<{ include: { customer: { selec
 export type SaleSummary = Prisma.SaleGetPayload<{ include: { customer: { select: { name: true } }; operator: { select: { name: true } }; _count: { select: { items: true } } } }>;
 export type SaleConfirmationData = { paymentMethod: 'CASH' | 'PIX' | 'DEBIT' | 'CREDIT' | 'OTHER' | 'LOYALTY'; loyaltyPoints?: number; idempotencyKey: string; idempotencyFingerprint: string; actorUserId: string; ipAddress?: string };
 export type SaleReturnData = SaleReturnInput & { idempotencyKey: string; idempotencyFingerprint: string; actorUserId: string; ipAddress?: string };
+export type SaleCancellationReason = 'DESISTENCIA_CLIENTE' | 'ERRO_REGISTRO' | 'PRODUTO_INDISPONIVEL' | 'VENDA_DUPLICADA' | 'OUTROS' | 'EXPIRACAO_POR_INATIVIDADE';
 
 export interface SaleRepository {
   findActiveCustomer(id: string): Promise<Customer | null>;
@@ -26,7 +27,7 @@ export interface SaleRepository {
   findById(id: string): Promise<SaleWithItems | null>;
   list(page: number, pageSize: number): Promise<{ sales: SaleSummary[]; total: number }>;
   confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
-  cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
+  cancel(id: string, data: { reason?: SaleCancellationReason; justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
   return(id: string, data: SaleReturnData): Promise<SaleWithItems>;
   cancelReturn(id: string, justification: string, actorUserId: string, ipAddress?: string): Promise<SaleWithItems>;
 }
@@ -34,7 +35,8 @@ export interface SaleConfirmationRepository {
   confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
 }
 export interface SaleCancellationRepository {
-  cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
+  cancel(id: string, data: { reason?: SaleCancellationReason; justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
+  expireDrafts(now?: Date): Promise<number>;
 }
 export interface SaleReturnRepository {
   return(id: string, data: SaleReturnData): Promise<SaleWithItems>;
@@ -59,7 +61,7 @@ export class PrismaSaleRepository implements SaleRepository {
   constructor(
     private readonly auditService: AuditService,
     private readonly confirmationRepository: SaleConfirmationRepository = { confirm: async () => { throw new Error('SALE_CONFIRMATION_NOT_CONFIGURED'); } },
-    private readonly cancellationRepository: SaleCancellationRepository = { cancel: async () => { throw new Error('SALE_CANCELLATION_NOT_CONFIGURED'); } },
+    private readonly cancellationRepository: SaleCancellationRepository = { cancel: async () => { throw new Error('SALE_CANCELLATION_NOT_CONFIGURED'); }, expireDrafts: async () => { throw new Error('SALE_CANCELLATION_NOT_CONFIGURED'); } },
     private readonly returnRepository: SaleReturnRepository = { return: async () => { throw new Error('SALE_RETURN_NOT_CONFIGURED'); }, cancelReturn: async () => { throw new Error('SALE_RETURN_NOT_CONFIGURED'); } },
   ) {}
 
@@ -159,7 +161,7 @@ export class PrismaSaleRepository implements SaleRepository {
     return this.confirmationRepository.confirm(id, data);
   }
 
-  cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems> {
+  cancel(id: string, data: { reason?: SaleCancellationReason; justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems> {
     return this.cancellationRepository.cancel(id, data);
   }
 
