@@ -81,6 +81,16 @@ enum SalePaymentMethod {
   LOYALTY
 }
 
+enum SaleReturnStatus {
+  CONFIRMADA
+  CANCELADA
+}
+
+enum SaleReturnDestination {
+  COMERCIALIZAVEL
+  PERDA
+}
+
 enum InventoryType {
   COMPLETE
   PARTIAL
@@ -137,6 +147,8 @@ model User {
   stockMovements StockMovement[]
   entries        Entry[]
   sales           Sale[]
+  saleReturns     SaleReturn[] @relation("SaleReturnOperator")
+  canceledSaleReturns SaleReturn[] @relation("SaleReturnCanceledBy")
   canceledSales   Sale[] @relation("SaleCanceledByUser")
   refundedSales   Sale[] @relation("SaleRefundOperator")
   stockLossReasons StockLossReason[]
@@ -290,6 +302,7 @@ model StockLot {
   movements       StockMovement[]
   inventoryItems  InventoryItem[]
   saleAllocations SaleItemAllocation[]
+  saleReturnItems SaleReturnItem[]
 
   @@index([productId, expirationDate, receivedAt])
   @@index([productId, identifier])
@@ -523,6 +536,7 @@ model Sale {
   refundOperatorUser User? @relation("SaleRefundOperator", fields: [refundOperatorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   customer      Customer?  @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   items         SaleItem[]
+  returns       SaleReturn[]
 
   @@index([status, updatedAt])
   @@index([operatorUserId, updatedAt])
@@ -530,6 +544,47 @@ model Sale {
   @@index([canceledByUserId])
   @@index([refundOperatorUserId])
   @@map("sales")
+}
+
+model SaleReturn {
+  id                    String           @id @default(uuid()) @db.Uuid
+  saleId                String           @map("sale_id") @db.Uuid
+  status                SaleReturnStatus @default(CONFIRMADA)
+  idempotencyKey        String           @unique @map("idempotency_key") @db.VarChar(100)
+  idempotencyFingerprint String          @map("idempotency_fingerprint") @db.VarChar(64)
+  refundAmount          Decimal          @map("refund_amount") @db.Decimal(12, 2)
+  refundPaymentMethod   SalePaymentMethod? @map("refund_payment_method")
+  operatorUserId        String           @map("operator_user_id") @db.Uuid
+  confirmedAt           DateTime         @default(now()) @map("confirmed_at") @db.Timestamptz(3)
+  cancellationJustification String?      @map("cancellation_justification") @db.VarChar(500)
+  canceledByUserId      String?          @map("canceled_by_user_id") @db.Uuid
+  canceledAt            DateTime?        @map("canceled_at") @db.Timestamptz(3)
+  sale                  Sale             @relation(fields: [saleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  operator              User             @relation("SaleReturnOperator", fields: [operatorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  canceledByUser        User?            @relation("SaleReturnCanceledBy", fields: [canceledByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items                 SaleReturnItem[]
+
+  @@index([saleId, status, confirmedAt])
+  @@index([operatorUserId])
+  @@index([canceledByUserId])
+  @@map("sale_returns")
+}
+
+model SaleReturnItem {
+  id             String                @id @default(uuid()) @db.Uuid
+  returnId       String                @map("return_id") @db.Uuid
+  saleItemId     String                @map("sale_item_id") @db.Uuid
+  lotId          String?               @map("lot_id") @db.Uuid
+  quantity       Decimal               @db.Decimal(12, 3)
+  destination    SaleReturnDestination
+  returnRecord   SaleReturn            @relation(fields: [returnId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  saleItem       SaleItem              @relation(fields: [saleItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  lot            StockLot?             @relation(fields: [lotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([returnId])
+  @@index([saleItemId, lotId])
+  @@index([lotId])
+  @@map("sale_return_items")
 }
 
 model SaleItem {
@@ -544,6 +599,7 @@ model SaleItem {
   sale       Sale     @relation(fields: [saleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   allocations SaleItemAllocation[]
+  returns SaleReturnItem[]
 
   @@index([saleId, createdAt])
   @@index([productId])

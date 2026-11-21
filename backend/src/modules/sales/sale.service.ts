@@ -1,5 +1,5 @@
 import { ApiError } from '../../shared/http/api-error.js';
-import type { SaleConfirmationInput, SaleItemInput, SaleDraftInput, SaleUpdateInput } from './sale.schemas.js';
+import type { SaleConfirmationInput, SaleItemInput, SaleDraftInput, SaleReturnInput, SaleUpdateInput } from './sale.schemas.js';
 import type { SaleConfirmationData, SaleRepository } from './sale.repository.js';
 
 export class SaleService {
@@ -85,6 +85,15 @@ export class SaleService {
 
   async cancel(id: string, justification: string, actorUserId: string, ipAddress?: string) {
     return this.repository.cancel(id, { justification, actorUserId, ipAddress });
+  }
+
+  async return(id: string, input: SaleReturnInput, idempotencyKey: string, actorUserId: string, ipAddress?: string) {
+    const data = { ...input, idempotencyKey, idempotencyFingerprint: createHash('sha256').update(JSON.stringify(input)).digest('hex'), actorUserId, ipAddress };
+    return this.repository.return(id, data);
+  }
+
+  async cancelReturn(id: string, justification: string, actorUserId: string, ipAddress?: string) {
+    return this.repository.cancelReturn(id, justification, actorUserId, ipAddress);
   }
 
   private async validateProducts(items: SaleItemInput[]) {

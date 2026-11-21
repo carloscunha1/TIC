@@ -21,6 +21,8 @@ function repository(overrides: Partial<SaleRepository> = {}): SaleRepository {
     list: jest.fn(async () => ({ sales: [], total: 0 })),
     confirm: jest.fn(async () => sale),
     cancel: jest.fn(async () => sale),
+    return: jest.fn(async () => sale),
+    cancelReturn: jest.fn(async () => sale),
     ...overrides,
   };
 }
@@ -62,5 +64,17 @@ describe('SaleService', () => {
       actorUserId: 'user-id',
       ipAddress: '127.0.0.1',
     });
+  });
+
+  it('registers a partial return with idempotency data', async () => {
+    const repo = repository();
+    await expect(new SaleService(repo).return(sale.id, {
+      items: [{ saleItemId: sale.items[0].id, quantity: 1, destination: 'COMERCIALIZAVEL' }],
+      refundPaymentMethod: 'PIX',
+    }, 'return-key', 'user-id')).resolves.toBe(sale);
+    expect(repo.return).toHaveBeenCalledWith(sale.id, expect.objectContaining({
+      idempotencyKey: 'return-key',
+      actorUserId: 'user-id',
+    }));
   });
 });

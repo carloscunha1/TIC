@@ -29,9 +29,23 @@ export const saleConfirmationSchema = z.object({
 export const saleCancellationSchema = z.object({
   justification: z.string().trim().min(1).max(500),
 });
+export const saleReturnItemSchema = z.object({
+  saleItemId: z.string().uuid(),
+  quantity: quantitySchema,
+  destination: z.enum(['COMERCIALIZAVEL', 'PERDA']),
+});
+export const saleReturnSchema = z.object({
+  items: z.array(saleReturnItemSchema).min(1).max(500),
+  refundAmount: z.number().finite().nonnegative().max(999999999.99),
+  refundPaymentMethod: z.enum(['CASH', 'PIX', 'DEBIT', 'CREDIT', 'OTHER', 'LOYALTY']).nullable(),
+});
+export const saleReturnCancellationSchema = z.object({
+  justification: z.string().trim().min(1).max(500),
+});
 
 export type SaleDraftInput = z.infer<typeof saleDraftSchema>;
 export type SaleUpdateInput = z.infer<typeof saleUpdateSchema>;
 export type SaleItemInput = z.infer<typeof saleItemSchema>;
 export type SaleConfirmationInput = z.infer<typeof saleConfirmationSchema>;
 export type SaleCancellationInput = z.infer<typeof saleCancellationSchema>;
+export type SaleReturnInput = z.infer<typeof saleReturnSchema>;
