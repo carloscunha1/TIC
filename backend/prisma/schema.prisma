@@ -137,6 +137,8 @@ model User {
   stockMovements StockMovement[]
   entries        Entry[]
   sales           Sale[]
+  canceledSales   Sale[] @relation("SaleCanceledByUser")
+  refundedSales   Sale[] @relation("SaleRefundOperator")
   stockLossReasons StockLossReason[]
   inventories      Inventory[]
   createdCustomers Customer[]
@@ -507,15 +509,26 @@ model Sale {
   idempotencyKey String? @unique @map("idempotency_key") @db.VarChar(100)
   idempotencyFingerprint String? @map("idempotency_fingerprint") @db.VarChar(64)
   confirmedAt   DateTime?  @map("confirmed_at") @db.Timestamptz(3)
+  cancellationJustification String? @map("cancellation_justification") @db.VarChar(500)
+  canceledByUserId String? @map("canceled_by_user_id") @db.Uuid
+  canceledAt    DateTime?  @map("canceled_at") @db.Timestamptz(3)
+  refundAmount  Decimal?   @map("refund_amount") @db.Decimal(12, 2)
+  refundPaymentMethod SalePaymentMethod? @map("refund_payment_method")
+  refundOperatorUserId String? @map("refund_operator_user_id") @db.Uuid
+  refundRecordedAt DateTime? @map("refund_recorded_at") @db.Timestamptz(3)
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
   operator      User       @relation(fields: [operatorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  canceledByUser User?     @relation("SaleCanceledByUser", fields: [canceledByUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refundOperatorUser User? @relation("SaleRefundOperator", fields: [refundOperatorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   customer      Customer?  @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   items         SaleItem[]
 
   @@index([status, updatedAt])
   @@index([operatorUserId, updatedAt])
   @@index([customerId])
+  @@index([canceledByUserId])
+  @@index([refundOperatorUserId])
   @@map("sales")
 }
 

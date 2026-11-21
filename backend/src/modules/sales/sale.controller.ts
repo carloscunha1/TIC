@@ -1,14 +1,16 @@
 import type { Request, Response } from 'express';
 import { PrismaAuditRepository } from '../audit/audit.repository.js';
 import { AuditService } from '../audit/audit.service.js';
-import { saleConfirmationSchema, saleDraftSchema, saleIdParamSchema, saleItemIdParamSchema, saleItemInputSchema, saleListQuerySchema, saleUpdateSchema } from './sale.schemas.js';
+import { saleCancellationSchema, saleConfirmationSchema, saleDraftSchema, saleIdParamSchema, saleItemIdParamSchema, saleItemInputSchema, saleListQuerySchema, saleUpdateSchema } from './sale.schemas.js';
 import { PrismaSaleRepository } from './sale.repository.js';
 import { PrismaSaleConfirmationRepository } from './sale-confirmation.repository.js';
+import { PrismaSaleCancellationRepository } from './sale-cancellation.repository.js';
 import { SaleService } from './sale.service.js';
 
 const auditService = new AuditService(new PrismaAuditRepository());
 const confirmationRepository = new PrismaSaleConfirmationRepository(auditService);
-const saleService = new SaleService(new PrismaSaleRepository(auditService, confirmationRepository));
+const cancellationRepository = new PrismaSaleCancellationRepository(auditService);
+const saleService = new SaleService(new PrismaSaleRepository(auditService, confirmationRepository, cancellationRepository));
 
 export async function createSale(request: Request, response: Response): Promise<void> {
   const sale = await saleService.create(saleDraftSchema.parse(request.body), response.locals.auth.userId, request.ip);
@@ -59,6 +61,14 @@ export async function confirmSale(request: Request, response: Response): Promise
     response.status(400).json({ success: false, message: 'Informe uma chave de idempotência válida.', code: 'IDEMPOTENCY_KEY_REQUIRED', requestId: response.locals.requestId });
     return;
   }
+
   const sale = await saleService.confirm(id, saleConfirmationSchema.parse(request.body), idempotencyKey, response.locals.auth.userId, request.ip);
+  response.status(200).json({ success: true, data: { sale }, requestId: response.locals.requestId });
+}
+
+export async function cancelSale(request: Request, response: Response): Promise<void> {
+  const { id } = saleIdParamSchema.parse(request.params);
+  const { justification } = saleCancellationSchema.parse(request.body);
+  const sale = await saleService.cancel(id, justification, response.locals.auth.userId, request.ip);
   response.status(200).json({ success: true, data: { sale }, requestId: response.locals.requestId });
 }

@@ -83,6 +83,10 @@ export class SaleService {
     return this.repository.confirm(id, data);
   }
 
+  async cancel(id: string, justification: string, actorUserId: string, ipAddress?: string) {
+    return this.repository.cancel(id, { justification, actorUserId, ipAddress });
+  }
+
   private async validateProducts(items: SaleItemInput[]) {
     const productIds = [...new Set(items.map((item) => item.productId))];
     const products = await this.repository.findActiveProducts(productIds);
