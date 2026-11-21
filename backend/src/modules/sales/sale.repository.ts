@@ -11,6 +11,7 @@ export type SaleWriteData = Omit<SaleDraftInput, 'items'> & {
 export type SaleUpdateData = SaleUpdateInput & { actorUserId: string; ipAddress?: string };
 export type SaleWithItems = Prisma.SaleGetPayload<{ include: { customer: { select: { id: true; name: true; phone: true } }; operator: { select: { id: true; name: true } }; items: { include: { product: { select: { id: true; name: true; sku: true; unit: true } } } } } }>;
 export type SaleSummary = Prisma.SaleGetPayload<{ include: { customer: { select: { name: true } }; operator: { select: { name: true } }; _count: { select: { items: true } } } }>;
+export type SaleConfirmationData = { paymentMethod: 'CASH' | 'PIX' | 'DEBIT' | 'CREDIT' | 'OTHER' | 'LOYALTY'; loyaltyPoints?: number; idempotencyKey: string; idempotencyFingerprint: string; actorUserId: string; ipAddress?: string };
 
 export interface SaleRepository {
   findActiveCustomer(id: string): Promise<Customer | null>;
@@ -23,9 +24,13 @@ export interface SaleRepository {
   removeItem(id: string, itemId: string, actorUserId: string, ipAddress?: string): Promise<SaleWithItems | null>;
   findById(id: string): Promise<SaleWithItems | null>;
   list(page: number, pageSize: number): Promise<{ sales: SaleSummary[]; total: number }>;
+  confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
+}
+export interface SaleConfirmationRepository {
+  confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
 }
 
-const includeSale = {
+export const includeSale = {
   customer: { select: { id: true, name: true, phone: true } },
   operator: { select: { id: true, name: true } },
   items: { include: { product: { select: { id: true, name: true, sku: true, unit: true } } }, orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }] },
@@ -40,7 +45,7 @@ function snapshot(sale: SaleWithItems) {
 }
 
 export class PrismaSaleRepository implements SaleRepository {
-  constructor(private readonly auditService: AuditService) {}
+  constructor(private readonly auditService: AuditService, private readonly confirmationRepository: SaleConfirmationRepository = { confirm: async () => { throw new Error('SALE_CONFIRMATION_NOT_CONFIGURED'); } }) {}
 
   findActiveCustomer(id: string): Promise<Customer | null> {
     return prisma.customer.findFirst({ where: { id, status: 'ACTIVE' } });
@@ -132,6 +137,10 @@ export class PrismaSaleRepository implements SaleRepository {
 
   findById(id: string): Promise<SaleWithItems | null> {
     return prisma.sale.findUnique({ where: { id }, include: includeSale });
+  }
+
+  confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems> {
+    return this.confirmationRepository.confirm(id, data);
   }
 
   async list(page: number, pageSize: number): Promise<{ sales: SaleSummary[]; total: number }> {
