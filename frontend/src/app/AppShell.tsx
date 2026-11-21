@@ -1,5 +1,6 @@
 import {
   Bell,
+  BellRing,
   Boxes,
   ChartNoAxesCombined,
   ClipboardList,
@@ -12,13 +13,13 @@ import {
   Sun,
   Users,
 } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/auth-context';
 import { ThemeProvider } from '@/app/ThemeProvider';
 import { useTheme } from '@/app/theme-context';
-import { logout } from '@/lib/api';
+import { listAlerts, logout } from '@/lib/api';
 import type { CurrentSession } from '@/lib/api';
 
 const navigation = [
@@ -44,6 +45,14 @@ function ShellContent() {
   const { hasPermission, session } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const alertsQuery = useQuery({
+    queryKey: ['alerts', 'notification-indicator'],
+    queryFn: () => listAlerts({ page: 1, pageSize: 100, status: 'ATIVO' }),
+    enabled: hasPermission('dashboard.view'),
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+  });
+  const hasUnreadAlerts = alertsQuery.data?.alerts.some((alert) => !alert.isRead) ?? false;
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: async () => {
@@ -91,9 +100,10 @@ function ShellContent() {
             <span className="hidden text-sm text-slate-500 sm:inline dark:text-slate-400">Painel administrativo</span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Notificações">
-              <Bell size={19} />
-            </button>
+            <NavLink to="/alertas" className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={hasUnreadAlerts ? 'Novas notificações não lidas' : 'Notificações'}>
+              {hasUnreadAlerts ? <BellRing aria-hidden="true" size={19} /> : <Bell aria-hidden="true" size={19} />}
+              {hasUnreadAlerts && <span aria-hidden="true" className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#FF6900] ring-2 ring-white dark:ring-slate-950" />}
+            </NavLink>
             <button onClick={toggleTheme} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'}>
               {theme === 'light' ? <Moon size={19} /> : <Sun size={19} />}
             </button>

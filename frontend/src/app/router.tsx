@@ -29,6 +29,7 @@ import { LoyaltyOperationsPage } from '@/app/LoyaltyOperationsPage';
 import { SalesPage } from '@/app/SalesPage';
 import { SaleDraftPage } from '@/app/SaleDraftPage';
 import { SaleReturnPage } from '@/app/SaleReturnPage';
+import { AlertsPage } from '@/app/AlertsPage';
 
 export const router = createBrowserRouter([
   {
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
       { path: '/vendas/nova', element: <SaleDraftPage /> },
       { path: '/vendas/:id/editar', element: <SaleDraftPage /> },
       { path: '/vendas/:id/devolucao', element: <SaleReturnPage /> },
+      { path: '/alertas', element: <AlertsPage /> },
       {
         path: '/fornecedores/:id/editar',
         element: <EditSupplierPage />,
