@@ -25,15 +25,19 @@ export interface SaleRepository {
   findById(id: string): Promise<SaleWithItems | null>;
   list(page: number, pageSize: number): Promise<{ sales: SaleSummary[]; total: number }>;
   confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
+  cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
 }
 export interface SaleConfirmationRepository {
   confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
+}
+export interface SaleCancellationRepository {
+  cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
 }
 
 export const includeSale = {
   customer: { select: { id: true, name: true, phone: true } },
   operator: { select: { id: true, name: true } },
-  items: { include: { product: { select: { id: true, name: true, sku: true, unit: true } } }, orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }] },
+  items: { include: { product: { select: { id: true, name: true, sku: true, unit: true } }, allocations: true }, orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }] },
 };
 
 function snapshot(sale: SaleWithItems) {
@@ -45,7 +49,11 @@ function snapshot(sale: SaleWithItems) {
 }
 
 export class PrismaSaleRepository implements SaleRepository {
-  constructor(private readonly auditService: AuditService, private readonly confirmationRepository: SaleConfirmationRepository = { confirm: async () => { throw new Error('SALE_CONFIRMATION_NOT_CONFIGURED'); } }) {}
+  constructor(
+    private readonly auditService: AuditService,
+    private readonly confirmationRepository: SaleConfirmationRepository = { confirm: async () => { throw new Error('SALE_CONFIRMATION_NOT_CONFIGURED'); } },
+    private readonly cancellationRepository: SaleCancellationRepository = { cancel: async () => { throw new Error('SALE_CANCELLATION_NOT_CONFIGURED'); } },
+  ) {}
 
   findActiveCustomer(id: string): Promise<Customer | null> {
     return prisma.customer.findFirst({ where: { id, status: 'ACTIVE' } });
@@ -141,6 +149,10 @@ export class PrismaSaleRepository implements SaleRepository {
 
   confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems> {
     return this.confirmationRepository.confirm(id, data);
+  }
+
+  cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems> {
+    return this.cancellationRepository.cancel(id, data);
   }
 
   async list(page: number, pageSize: number): Promise<{ sales: SaleSummary[]; total: number }> {

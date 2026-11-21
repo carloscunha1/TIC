@@ -26,8 +26,12 @@ export const saleConfirmationSchema = z.object({
   paymentMethod: z.enum(['CASH', 'PIX', 'DEBIT', 'CREDIT', 'OTHER', 'LOYALTY']),
   loyaltyPoints: z.number().int().positive().max(2_147_483_647).optional(),
 });
+export const saleCancellationSchema = z.object({
+  justification: z.string().trim().min(1).max(500),
+});
 
 export type SaleDraftInput = z.infer<typeof saleDraftSchema>;
 export type SaleUpdateInput = z.infer<typeof saleUpdateSchema>;
 export type SaleItemInput = z.infer<typeof saleItemSchema>;
 export type SaleConfirmationInput = z.infer<typeof saleConfirmationSchema>;
+export type SaleCancellationInput = z.infer<typeof saleCancellationSchema>;

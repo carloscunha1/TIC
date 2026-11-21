@@ -20,6 +20,7 @@ function repository(overrides: Partial<SaleRepository> = {}): SaleRepository {
     findById: jest.fn(async () => sale),
     list: jest.fn(async () => ({ sales: [], total: 0 })),
     confirm: jest.fn(async () => sale),
+    cancel: jest.fn(async () => sale),
     ...overrides,
   };
 }
@@ -51,5 +52,15 @@ describe('SaleService', () => {
     const service = new SaleService(repository());
     await expect(service.confirm(sale.id, { paymentMethod: 'LOYALTY' }, 'key', 'user-id')).rejects.toMatchObject({ code: 'LOYALTY_POINTS_REQUIRED' });
     await expect(service.confirm(sale.id, { paymentMethod: 'CASH', loyaltyPoints: 10 }, 'key', 'user-id')).rejects.toMatchObject({ code: 'LOYALTY_PAYMENT_METHOD_REQUIRED' });
+  });
+
+  it('cancels a sale through the repository with its justification and actor', async () => {
+    const repo = repository();
+    await expect(new SaleService(repo).cancel(sale.id, 'Erro de lançamento', 'user-id', '127.0.0.1')).resolves.toBe(sale);
+    expect(repo.cancel).toHaveBeenCalledWith(sale.id, {
+      justification: 'Erro de lançamento',
+      actorUserId: 'user-id',
+      ipAddress: '127.0.0.1',
+    });
   });
 });
