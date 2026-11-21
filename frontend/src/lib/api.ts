@@ -258,6 +258,23 @@ export async function cancelSaleReturn(id: string, justification: string): Promi
   return (await response.json() as { data: { sale: SaleView } }).data.sale;
 }
 
+export type OperationalAlert = { id: string; type: 'ESTOQUE_ZERADO' | 'ESTOQUE_ABAIXO_MINIMO' | 'LOTE_PROXIMO_VENCIMENTO' | 'LOTE_VENCIDO' | 'SALDO_FIDELIDADE_NEGATIVO'; priority: 'ALTA' | 'MEDIA' | 'BAIXA'; status: 'ATIVO' | 'RESOLVIDO'; title: string; message: string; detectedAt: string; resolvedAt: string | null; isRead: boolean; product: { name: string } | null; lot: { identifier: string } | null; customer: { name: string } | null };
+export async function listAlerts(params: { page: number; pageSize: number; status?: OperationalAlert['status'] }): Promise<{ alerts: OperationalAlert[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.status) query.set('status', params.status);
+  const response = await fetch(`${apiUrl('/alerts')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) return saleError(response, 'Não foi possível consultar os alertas.');
+  return (await response.json() as { data: { alerts: OperationalAlert[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
+}
+export async function markAlertRead(id: string): Promise<void> {
+  const response = await fetch(apiUrl(`/alerts/${id}/read`), { credentials: 'include', method: 'POST' });
+  if (!response.ok) return saleError(response, 'Não foi possível marcar o alerta como lido.');
+}
+export async function markAllAlertsRead(): Promise<void> {
+  const response = await fetch(apiUrl('/alerts/read-all'), { credentials: 'include', method: 'POST' });
+  if (!response.ok) return saleError(response, 'Não foi possível marcar os alertas como lidos.');
+}
+
 export async function confirmEntry(id: string): Promise<{ entry: EntryView; alreadyConfirmed: boolean }> {
   const response = await fetch(apiUrl(`/entries/${id}/confirm`), { method: 'POST', credentials: 'include' });
   if (!response.ok) return entryError(response, 'Não foi possível confirmar a entrada.');

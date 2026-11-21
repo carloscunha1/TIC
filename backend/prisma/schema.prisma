@@ -91,6 +91,25 @@ enum SaleReturnDestination {
   PERDA
 }
 
+enum AlertType {
+  ESTOQUE_ZERADO
+  ESTOQUE_ABAIXO_MINIMO
+  LOTE_PROXIMO_VENCIMENTO
+  LOTE_VENCIDO
+  SALDO_FIDELIDADE_NEGATIVO
+}
+
+enum AlertPriority {
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+enum AlertStatus {
+  ATIVO
+  RESOLVIDO
+}
+
 enum InventoryType {
   COMPLETE
   PARTIAL
@@ -156,6 +175,7 @@ model User {
   createdCustomers Customer[]
   loyaltyPolicies  LoyaltyPolicy[]
   loyaltyMovements LoyaltyMovement[]
+  alertReads      AlertRead[]
 
   @@index([status])
   @@map("users")
@@ -217,6 +237,7 @@ model Product {
   entryItems          EntryItem[]
   saleItems           SaleItem[]
   inventoryItems      InventoryItem[]
+  alerts              OperationalAlert[]
 
   @@index([categoryId])
   @@index([status])
@@ -303,6 +324,7 @@ model StockLot {
   inventoryItems  InventoryItem[]
   saleAllocations SaleItemAllocation[]
   saleReturnItems SaleReturnItem[]
+  alerts          OperationalAlert[]
 
   @@index([productId, expirationDate, receivedAt])
   @@index([productId, identifier])
@@ -383,11 +405,51 @@ model Customer {
   loyaltyCredits                LoyaltyCredit[]
   loyaltyMovements              LoyaltyMovement[]
   loyaltyAllocations            LoyaltyAllocation[]
+  alerts                        OperationalAlert[]
   sales                         Sale[]
 
   @@index([status, name])
   @@index([createdById])
   @@map("customers")
+}
+
+model OperationalAlert {
+  id          String        @id @default(uuid()) @db.Uuid
+  type        AlertType
+  priority    AlertPriority
+  status      AlertStatus   @default(ATIVO)
+  eventKey    String        @map("event_key") @db.VarChar(180)
+  title       String        @db.VarChar(160)
+  message     String        @db.VarChar(500)
+  productId   String?       @map("product_id") @db.Uuid
+  lotId       String?       @map("lot_id") @db.Uuid
+  customerId  String?       @map("customer_id") @db.Uuid
+  detectedAt  DateTime      @default(now()) @map("detected_at") @db.Timestamptz(3)
+  resolvedAt  DateTime?     @map("resolved_at") @db.Timestamptz(3)
+  product     Product?      @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  lot         StockLot?     @relation(fields: [lotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  customer    Customer?     @relation(fields: [customerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reads       AlertRead[]
+
+  @@index([status, priority, detectedAt])
+  @@index([eventKey, status])
+  @@index([productId, status])
+  @@index([lotId, status])
+  @@index([customerId, status])
+  @@map("operational_alerts")
+}
+
+model AlertRead {
+  id        String           @id @default(uuid()) @db.Uuid
+  alertId   String           @map("alert_id") @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  readAt    DateTime         @default(now()) @map("read_at") @db.Timestamptz(3)
+  alert     OperationalAlert @relation(fields: [alertId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([alertId, userId])
+  @@index([userId, readAt])
+  @@map("alert_reads")
 }
 
 model CustomerSession {

@@ -14,6 +14,7 @@ import { customerAuthRouter } from './modules/customers/customer-auth.routes.js'
 import { loyaltyPolicyRouter } from './modules/loyalty/loyalty-policy.routes.js';
 import { loyaltyRouter } from './modules/loyalty/loyalty.routes.js';
 import { saleRouter } from './modules/sales/sale.routes.js';
+import { alertRouter } from './modules/alerts/alert.routes.js';
 import { ApiError } from './shared/http/api-error.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
@@ -130,6 +131,7 @@ app.use('/api/v1/customer-auth', customerAuthRouter);
 app.use('/api/v1/loyalty/policy', loyaltyPolicyRouter);
 app.use('/api/v1/loyalty', loyaltyRouter);
 app.use('/api/v1/sales', saleRouter);
+app.use('/api/v1/alerts', alertRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({
