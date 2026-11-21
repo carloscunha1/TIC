@@ -19,6 +19,7 @@ function repository(overrides: Partial<SaleRepository> = {}): SaleRepository {
     removeItem: jest.fn(async () => sale),
     findById: jest.fn(async () => sale),
     list: jest.fn(async () => ({ sales: [], total: 0 })),
+    confirm: jest.fn(async () => sale),
     ...overrides,
   };
 }
@@ -44,5 +45,11 @@ describe('SaleService', () => {
 
   it('does not remove the last item from an in-progress sale', async () => {
     await expect(new SaleService(repository()).removeItem(sale.id, sale.items[0].id, 'user-id')).rejects.toMatchObject({ code: 'SALE_REQUIRES_ITEM' });
+  });
+
+  it('requires loyalty payment data to be consistent', async () => {
+    const service = new SaleService(repository());
+    await expect(service.confirm(sale.id, { paymentMethod: 'LOYALTY' }, 'key', 'user-id')).rejects.toMatchObject({ code: 'LOYALTY_POINTS_REQUIRED' });
+    await expect(service.confirm(sale.id, { paymentMethod: 'CASH', loyaltyPoints: 10 }, 'key', 'user-id')).rejects.toMatchObject({ code: 'LOYALTY_PAYMENT_METHOD_REQUIRED' });
   });
 });

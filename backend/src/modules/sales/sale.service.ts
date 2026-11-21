@@ -1,6 +1,6 @@
 import { ApiError } from '../../shared/http/api-error.js';
-import type { SaleItemInput, SaleDraftInput, SaleUpdateInput } from './sale.schemas.js';
-import type { SaleRepository } from './sale.repository.js';
+import type { SaleConfirmationInput, SaleItemInput, SaleDraftInput, SaleUpdateInput } from './sale.schemas.js';
+import type { SaleConfirmationData, SaleRepository } from './sale.repository.js';
 
 export class SaleService {
   constructor(private readonly repository: SaleRepository) {}
@@ -66,6 +66,23 @@ export class SaleService {
     return { ...result, page, pageSize, totalPages: Math.ceil(result.total / pageSize) };
   }
 
+  async confirm(id: string, input: SaleConfirmationInput, idempotencyKey: string, actorUserId: string, ipAddress?: string) {
+    if (input.paymentMethod === 'LOYALTY' && !input.loyaltyPoints) {
+      throw new ApiError(400, 'LOYALTY_POINTS_REQUIRED', 'Informe os pontos usados no pagamento por fidelidade.');
+    }
+    if (input.paymentMethod !== 'LOYALTY' && input.loyaltyPoints) {
+      throw new ApiError(400, 'LOYALTY_PAYMENT_METHOD_REQUIRED', 'O pagamento com pontos exige a forma de pagamento FIDELIDADE.');
+    }
+    const data: SaleConfirmationData = {
+      ...input,
+      idempotencyKey,
+      idempotencyFingerprint: createHash('sha256').update(JSON.stringify(input)).digest('hex'),
+      actorUserId,
+      ipAddress,
+    };
+    return this.repository.confirm(id, data);
+  }
+
   private async validateProducts(items: SaleItemInput[]) {
     const productIds = [...new Set(items.map((item) => item.productId))];
     const products = await this.repository.findActiveProducts(productIds);
@@ -91,3 +108,4 @@ export class SaleService {
     throw new ApiError(409, 'SALE_NOT_EDITABLE', 'Somente vendas em andamento podem ser editadas.');
   }
 }
+import { createHash } from 'node:crypto';

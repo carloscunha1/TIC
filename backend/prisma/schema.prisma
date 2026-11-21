@@ -72,6 +72,15 @@ enum SaleStatus {
   CANCELADA
 }
 
+enum SalePaymentMethod {
+  CASH
+  PIX
+  DEBIT
+  CREDIT
+  OTHER
+  LOYALTY
+}
+
 enum InventoryType {
   COMPLETE
   PARTIAL
@@ -278,6 +287,7 @@ model StockLot {
   product         Product         @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   movements       StockMovement[]
   inventoryItems  InventoryItem[]
+  saleAllocations SaleItemAllocation[]
 
   @@index([productId, expirationDate, receivedAt])
   @@index([productId, identifier])
@@ -492,6 +502,11 @@ model Sale {
   status        SaleStatus @default(EM_ANDAMENTO)
   observations  String?    @db.VarChar(500)
   total         Decimal    @default(0) @db.Decimal(12, 2)
+  paymentMethod SalePaymentMethod? @map("payment_method")
+  loyaltyPointsRedeemed Int? @map("loyalty_points_redeemed")
+  idempotencyKey String? @unique @map("idempotency_key") @db.VarChar(100)
+  idempotencyFingerprint String? @map("idempotency_fingerprint") @db.VarChar(64)
+  confirmedAt   DateTime?  @map("confirmed_at") @db.Timestamptz(3)
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
   operator      User       @relation(fields: [operatorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
@@ -515,10 +530,24 @@ model SaleItem {
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
   sale       Sale     @relation(fields: [saleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  allocations SaleItemAllocation[]
 
   @@index([saleId, createdAt])
   @@index([productId])
   @@map("sale_items")
+}
+
+model SaleItemAllocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  saleItemId String  @map("sale_item_id") @db.Uuid
+  lotId     String?  @map("lot_id") @db.Uuid
+  quantity  Decimal  @db.Decimal(12, 3)
+  saleItem  SaleItem @relation(fields: [saleItemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  lot       StockLot? @relation(fields: [lotId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([saleItemId])
+  @@index([lotId])
+  @@map("sale_item_allocations")
 }
 
 model EntryItem {

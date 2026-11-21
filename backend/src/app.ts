@@ -103,7 +103,7 @@ app.use((request, response, next) => {
   const origin = request.header('origin');
   if (origin === frontendOrigin) {
     response.setHeader('Access-Control-Allow-Credentials', 'true');
-    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Request-Id');
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Request-Id, Idempotency-Key');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
     response.setHeader('Access-Control-Allow-Origin', origin);
     response.setHeader('Vary', 'Origin');

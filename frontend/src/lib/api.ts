@@ -192,7 +192,7 @@ export async function listEntries(params: { page: number; pageSize: number }): P
 
 export type SaleStatus = 'EM_ANDAMENTO' | 'CONFIRMADA' | 'PARCIALMENTE_DEVOLVIDA' | 'DEVOLVIDA' | 'CANCELADA';
 export type SaleItemView = { id: string; productId: string; quantity: string; unitPrice: string; total: string; product: { id: string; name: string; sku: string; unit: ProductListItem['unit'] } };
-export type SaleView = { id: string; customerId: string | null; status: SaleStatus; observations: string | null; total: string; customer: { id: string; name: string; phone: string } | null; items: SaleItemView[]; createdAt: string; updatedAt: string };
+export type SaleView = { id: string; customerId: string | null; status: SaleStatus; observations: string | null; total: string; paymentMethod: 'CASH' | 'PIX' | 'DEBIT' | 'CREDIT' | 'OTHER' | 'LOYALTY' | null; loyaltyPointsRedeemed: number | null; customer: { id: string; name: string; phone: string } | null; items: SaleItemView[]; createdAt: string; updatedAt: string };
 export type SaleListItem = { id: string; status: SaleStatus; total: string; customer: { name: string } | null; operator: { name: string }; _count: { items: number }; createdAt: string; updatedAt: string };
 export type SaleDraftInput = { customerId?: string | null; observations?: string | null; items: Array<{ productId: string; quantity: number }> };
 
@@ -235,6 +235,11 @@ export async function updateSaleItem(id: string, itemId: string, quantity: numbe
 export async function removeSaleItem(id: string, itemId: string): Promise<SaleView> {
   const response = await fetch(apiUrl(`/sales/${id}/items/${itemId}`), { credentials: 'include', method: 'DELETE' });
   if (!response.ok) return saleError(response, 'Não foi possível remover o item.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+export async function confirmSale(id: string, payload: { paymentMethod: SaleView['paymentMethod']; loyaltyPoints?: number }): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}/confirm`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, method: 'POST' });
+  if (!response.ok) return saleError(response, 'Não foi possível confirmar a venda.');
   return (await response.json() as { data: { sale: SaleView } }).data.sale;
 }
 
