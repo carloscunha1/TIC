@@ -27,6 +27,7 @@ export const saleConfirmationSchema = z.object({
   loyaltyPoints: z.number().int().positive().max(2_147_483_647).optional(),
 });
 export const saleCancellationSchema = z.object({
+  reason: z.enum(['DESISTENCIA_CLIENTE', 'ERRO_REGISTRO', 'PRODUTO_INDISPONIVEL', 'VENDA_DUPLICADA', 'OUTROS', 'EXPIRACAO_POR_INATIVIDADE']).optional(),
   justification: z.string().trim().min(1).max(500),
 });
 export const saleReturnItemSchema = z.object({

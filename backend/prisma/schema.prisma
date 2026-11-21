@@ -72,6 +72,15 @@ enum SaleStatus {
   CANCELADA
 }
 
+enum SaleCancellationReason {
+  DESISTENCIA_CLIENTE
+  ERRO_REGISTRO
+  PRODUTO_INDISPONIVEL
+  VENDA_DUPLICADA
+  OUTROS
+  EXPIRACAO_POR_INATIVIDADE
+}
+
 enum SalePaymentMethod {
   CASH
   PIX
@@ -584,6 +593,7 @@ model Sale {
   idempotencyKey String? @unique @map("idempotency_key") @db.VarChar(100)
   idempotencyFingerprint String? @map("idempotency_fingerprint") @db.VarChar(64)
   confirmedAt   DateTime?  @map("confirmed_at") @db.Timestamptz(3)
+  cancellationReason SaleCancellationReason? @map("cancellation_reason")
   cancellationJustification String? @map("cancellation_justification") @db.VarChar(500)
   canceledByUserId String? @map("canceled_by_user_id") @db.Uuid
   canceledAt    DateTime?  @map("canceled_at") @db.Timestamptz(3)

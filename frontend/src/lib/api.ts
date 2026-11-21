@@ -242,8 +242,9 @@ export async function confirmSale(id: string, payload: { paymentMethod: SaleView
   if (!response.ok) return saleError(response, 'Não foi possível confirmar a venda.');
   return (await response.json() as { data: { sale: SaleView } }).data.sale;
 }
-export async function cancelSale(id: string, justification: string): Promise<SaleView> {
-  const response = await fetch(apiUrl(`/sales/${id}/cancel`), { body: JSON.stringify({ justification }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+export type SaleCancellationReason = 'DESISTENCIA_CLIENTE' | 'ERRO_REGISTRO' | 'PRODUTO_INDISPONIVEL' | 'VENDA_DUPLICADA' | 'OUTROS';
+export async function cancelSale(id: string, justification: string, reason?: SaleCancellationReason): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}/cancel`), { body: JSON.stringify({ justification, ...(reason ? { reason } : {}) }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
   if (!response.ok) return saleError(response, 'Não foi possível cancelar a venda.');
   return (await response.json() as { data: { sale: SaleView } }).data.sale;
 }
