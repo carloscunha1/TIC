@@ -247,6 +247,16 @@ export async function cancelSale(id: string, justification: string): Promise<Sal
   if (!response.ok) return saleError(response, 'Não foi possível cancelar a venda.');
   return (await response.json() as { data: { sale: SaleView } }).data.sale;
 }
+export async function returnSale(id: string, payload: { items: Array<{ saleItemId: string; quantity: number; destination: 'COMERCIALIZAVEL' | 'PERDA' }>; refundAmount: number; refundPaymentMethod: SaleView['paymentMethod'] | null }): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/${id}/returns`), { body: JSON.stringify(payload), credentials: 'include', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, method: 'POST' });
+  if (!response.ok) return saleError(response, 'Não foi possível registrar a devolução.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
+export async function cancelSaleReturn(id: string, justification: string): Promise<SaleView> {
+  const response = await fetch(apiUrl(`/sales/returns/${id}/cancel`), { body: JSON.stringify({ justification }), credentials: 'include', headers: { 'Content-Type': 'application/json' }, method: 'POST' });
+  if (!response.ok) return saleError(response, 'Não foi possível cancelar a devolução.');
+  return (await response.json() as { data: { sale: SaleView } }).data.sale;
+}
 
 export async function confirmEntry(id: string): Promise<{ entry: EntryView; alreadyConfirmed: boolean }> {
   const response = await fetch(apiUrl(`/entries/${id}/confirm`), { method: 'POST', credentials: 'include' });

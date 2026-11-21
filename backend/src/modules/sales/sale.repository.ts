@@ -1,7 +1,7 @@
 import { Prisma, type Customer, type Product } from '@prisma/client';
 import { prisma } from '../../infrastructure/database/prisma.js';
 import type { AuditService } from '../audit/audit.service.js';
-import type { SaleDraftInput, SaleItemInput, SaleUpdateInput } from './sale.schemas.js';
+import type { SaleDraftInput, SaleItemInput, SaleReturnInput, SaleUpdateInput } from './sale.schemas.js';
 
 export type SaleWriteData = Omit<SaleDraftInput, 'items'> & {
   items: Array<SaleItemInput & { unitPrice: number }>;
@@ -12,6 +12,7 @@ export type SaleUpdateData = SaleUpdateInput & { actorUserId: string; ipAddress?
 export type SaleWithItems = Prisma.SaleGetPayload<{ include: { customer: { select: { id: true; name: true; phone: true } }; operator: { select: { id: true; name: true } }; items: { include: { product: { select: { id: true; name: true; sku: true; unit: true } } } } } }>;
 export type SaleSummary = Prisma.SaleGetPayload<{ include: { customer: { select: { name: true } }; operator: { select: { name: true } }; _count: { select: { items: true } } } }>;
 export type SaleConfirmationData = { paymentMethod: 'CASH' | 'PIX' | 'DEBIT' | 'CREDIT' | 'OTHER' | 'LOYALTY'; loyaltyPoints?: number; idempotencyKey: string; idempotencyFingerprint: string; actorUserId: string; ipAddress?: string };
+export type SaleReturnData = SaleReturnInput & { idempotencyKey: string; idempotencyFingerprint: string; actorUserId: string; ipAddress?: string };
 
 export interface SaleRepository {
   findActiveCustomer(id: string): Promise<Customer | null>;
@@ -26,12 +27,18 @@ export interface SaleRepository {
   list(page: number, pageSize: number): Promise<{ sales: SaleSummary[]; total: number }>;
   confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
   cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
+  return(id: string, data: SaleReturnData): Promise<SaleWithItems>;
+  cancelReturn(id: string, justification: string, actorUserId: string, ipAddress?: string): Promise<SaleWithItems>;
 }
 export interface SaleConfirmationRepository {
   confirm(id: string, data: SaleConfirmationData): Promise<SaleWithItems>;
 }
 export interface SaleCancellationRepository {
   cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems>;
+}
+export interface SaleReturnRepository {
+  return(id: string, data: SaleReturnData): Promise<SaleWithItems>;
+  cancelReturn(id: string, justification: string, actorUserId: string, ipAddress?: string): Promise<SaleWithItems>;
 }
 
 export const includeSale = {
@@ -53,6 +60,7 @@ export class PrismaSaleRepository implements SaleRepository {
     private readonly auditService: AuditService,
     private readonly confirmationRepository: SaleConfirmationRepository = { confirm: async () => { throw new Error('SALE_CONFIRMATION_NOT_CONFIGURED'); } },
     private readonly cancellationRepository: SaleCancellationRepository = { cancel: async () => { throw new Error('SALE_CANCELLATION_NOT_CONFIGURED'); } },
+    private readonly returnRepository: SaleReturnRepository = { return: async () => { throw new Error('SALE_RETURN_NOT_CONFIGURED'); }, cancelReturn: async () => { throw new Error('SALE_RETURN_NOT_CONFIGURED'); } },
   ) {}
 
   findActiveCustomer(id: string): Promise<Customer | null> {
@@ -153,6 +161,14 @@ export class PrismaSaleRepository implements SaleRepository {
 
   cancel(id: string, data: { justification: string; actorUserId: string; ipAddress?: string }): Promise<SaleWithItems> {
     return this.cancellationRepository.cancel(id, data);
+  }
+
+  return(id: string, data: SaleReturnData): Promise<SaleWithItems> {
+    return this.returnRepository.return(id, data);
+  }
+
+  cancelReturn(id: string, justification: string, actorUserId: string, ipAddress?: string): Promise<SaleWithItems> {
+    return this.returnRepository.cancelReturn(id, justification, actorUserId, ipAddress);
   }
 
   async list(page: number, pageSize: number): Promise<{ sales: SaleSummary[]; total: number }> {
