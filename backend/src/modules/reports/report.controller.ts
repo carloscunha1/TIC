@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { movementReportQuerySchema, reportPeriodSchema } from './report.schemas.js';
+import { movementReportQuerySchema, reportPeriodSchema, salesReportQuerySchema } from './report.schemas.js';
 import { ReportService, toCsv } from './report.service.js';
 
 const service = new ReportService();
@@ -40,4 +40,30 @@ export async function supplierEntries(request: Request, response: Response): Pro
   const query = reportPeriodSchema.parse(request.query);
   const data = await service.supplierEntries(query);
   respond(response, query.format, 'entradas-fornecedores.csv', ['Fornecedor', 'Entradas', 'Quantidade', 'Custo total'], data.suppliers.map((item) => [item.supplier, item.entries, item.quantity, item.totalCost]), data);
+}
+
+export async function sales(request: Request, response: Response): Promise<void> {
+  const query = salesReportQuerySchema.parse(request.query);
+  const data = await service.sales(query);
+  respond(
+    response,
+    query.format,
+    'relatorio-vendas.csv',
+    ['Venda', 'Confirmada em', 'Status', 'Forma de pagamento', 'Operador', 'Cliente', 'Bruto', 'Liquido'],
+    data.sales.map((item) => [item.id, item.confirmedAt?.toISOString() ?? '', item.status, item.paymentMethod ?? '', item.operator, item.customer ?? 'Sem cliente', item.gross, item.liquid]),
+    data,
+  );
+}
+
+export async function loyalty(request: Request, response: Response): Promise<void> {
+  const query = reportPeriodSchema.parse(request.query);
+  const data = await service.loyalty(query);
+  respond(
+    response,
+    query.format,
+    'relatorio-fidelidade.csv',
+    ['Cliente', 'Pontos concedidos', 'Pontos resgatados', 'Pontos expirados', 'Saldo em circulação'],
+    data.ranking.map((item) => [item.customer, item.points, '', '', '']),
+    data,
+  );
 }

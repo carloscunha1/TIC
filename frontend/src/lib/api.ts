@@ -307,6 +307,38 @@ export function getLowRotationReport(params: { from?: string; to?: string }): Pr
 export function getSupplierEntriesReport(params: { from?: string; to?: string }): Promise<SupplierEntriesReport> {
   return getReport('/reports/entries/suppliers', params);
 }
+export type SalesReport = {
+  sales: Array<{ id: string; confirmedAt: string | null; status: string; paymentMethod: string | null; operator: string; customer: string | null; gross: number; liquid: number }>;
+  totals: { gross: number; liquid: number; averageTicket: number; paymentDistribution: Array<{ method: string; value: number }> };
+  products: Array<{ productId: string; sku: string; product: string; quantity: number; liquidValue: number }>;
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+export type LoyaltyReport = {
+  period: { from: string; to: string };
+  totals: { customersRegistered: number; customersActive: number; granted: number; redeemed: number; expired: number; balanceInCirculation: number };
+  ranking: Array<{ customerId: string; customer: string; points: number }>;
+  negativeBalances: Array<{ customerId: string; customer: string; status: string; balance: number }>;
+  history: Array<{ id: string; date: string; customer: string; type: string; points: number; reason: string | null }>;
+};
+export function getSalesReport(params: {
+  from?: string;
+  to?: string;
+  operatorId?: string;
+  paymentMethod?: string;
+  customerId?: string;
+  status?: string;
+  productId?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<SalesReport> {
+  return getReport('/reports/sales', { ...params, page: String(params.page ?? 1), pageSize: String(params.pageSize ?? 20) });
+}
+export function getLoyaltyReport(params: { from?: string; to?: string }): Promise<LoyaltyReport> {
+  return getReport('/reports/loyalty', params);
+}
 export async function downloadReport(path: string, params: Record<string, string | undefined>): Promise<Blob> {
   const query = new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, value]) => value)), format: 'csv' });
   const response = await fetch(`${apiUrl(path)}?${query.toString()}`, { credentials: 'include' });

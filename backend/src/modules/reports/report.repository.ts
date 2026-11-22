@@ -1,5 +1,5 @@
 import { prisma } from '../../infrastructure/database/prisma.js';
-import type { MovementReportQuery, ReportPeriod } from './report.schemas.js';
+import type { MovementReportQuery, ReportPeriod, SalesReportQuery } from './report.schemas.js';
 
 function periodWhere(period: ReportPeriod): { gte?: Date; lte?: Date } {
   const where: { gte?: Date; lte?: Date } = {};
@@ -9,6 +9,56 @@ function periodWhere(period: ReportPeriod): { gte?: Date; lte?: Date } {
 }
 
 export class PrismaReportRepository {
+  listSales(query: SalesReportQuery) {
+    const where = {
+      ...(query.operatorId ? { operatorUserId: query.operatorId } : {}),
+      ...(query.paymentMethod ? { paymentMethod: query.paymentMethod } : {}),
+      ...(query.customerId ? { customerId: query.customerId } : {}),
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.productId ? { items: { some: { productId: query.productId } } } : {}),
+      ...((query.from || query.to) ? { confirmedAt: periodWhere(query) } : {}),
+    };
+    return prisma.$transaction([
+      prisma.sale.findMany({
+        where,
+        include: {
+          customer: { select: { id: true, name: true } },
+          operator: { select: { id: true, name: true } },
+          items: {
+            include: {
+              product: { select: { id: true, name: true, sku: true, unit: true, status: true } },
+              returns: {
+                include: { returnRecord: { select: { status: true } } },
+              },
+            },
+          },
+          returns: { where: { status: 'CONFIRMADA' }, select: { refundAmount: true, confirmedAt: true } },
+        },
+        orderBy: [{ confirmedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      prisma.sale.count({ where }),
+    ]);
+  }
+
+  listLoyaltyMovements(period: ReportPeriod) {
+    return prisma.loyaltyMovement.findMany({
+      where: period.from || period.to ? { createdAt: periodWhere(period) } : {},
+      include: {
+        customer: { select: { id: true, name: true, status: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
+  listCustomersForLoyalty() {
+    return prisma.customer.findMany({
+      select: { id: true, name: true, status: true, loyaltyMovements: { select: { pointsDelta: true } } },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    });
+  }
+
   listProducts() {
     return prisma.product.findMany({
       include: { stockBalance: true, stockLots: true },

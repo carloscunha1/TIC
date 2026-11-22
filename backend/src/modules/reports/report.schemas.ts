@@ -15,5 +15,16 @@ export const movementReportQuerySchema = reportPeriodSchema.extend({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+export const salesReportQuerySchema = reportPeriodSchema.extend({
+  operatorId: z.string().uuid().optional(),
+  paymentMethod: z.enum(['CASH', 'PIX', 'DEBIT', 'CREDIT', 'OTHER', 'LOYALTY']).optional(),
+  customerId: z.string().uuid().optional(),
+  status: z.enum(['EM_ANDAMENTO', 'CONFIRMADA', 'PARCIALMENTE_DEVOLVIDA', 'DEVOLVIDA', 'CANCELADA']).optional(),
+  productId: z.string().uuid().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export type ReportPeriod = z.infer<typeof reportPeriodSchema>;
 export type MovementReportQuery = z.infer<typeof movementReportQuerySchema>;
+export type SalesReportQuery = z.infer<typeof salesReportQuerySchema>;
