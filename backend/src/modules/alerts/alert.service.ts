@@ -88,7 +88,7 @@ export class AlertService {
   }
 
   async markAllRead(userId: string) {
-    const active = await prisma.operationalAlert.findMany({ where: { status: AlertStatus.ATIVO }, select: { id: true } });
-    await prisma.$transaction(active.map((alert) => prisma.alertRead.upsert({ where: { alertId_userId: { alertId: alert.id, userId } }, create: { id: randomUUID(), alertId: alert.id, userId }, update: { readAt: new Date() } })));
+    const alerts = await prisma.operationalAlert.findMany({ select: { id: true } });
+    await prisma.$transaction(alerts.map((alert) => prisma.alertRead.upsert({ where: { alertId_userId: { alertId: alert.id, userId } }, create: { id: randomUUID(), alertId: alert.id, userId }, update: { readAt: new Date() } })));
   }
 }

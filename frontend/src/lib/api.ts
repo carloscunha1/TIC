@@ -306,9 +306,17 @@ export async function cancelSaleReturn(id: string, justification: string): Promi
 }
 
 export type OperationalAlert = { id: string; type: 'ESTOQUE_ZERADO' | 'ESTOQUE_ABAIXO_MINIMO' | 'LOTE_PROXIMO_VENCIMENTO' | 'LOTE_VENCIDO' | 'SALDO_FIDELIDADE_NEGATIVO'; priority: 'ALTA' | 'MEDIA' | 'BAIXA'; status: 'ATIVO' | 'RESOLVIDO'; title: string; message: string; detectedAt: string; resolvedAt: string | null; isRead: boolean; product: { name: string } | null; lot: { identifier: string } | null; customer: { name: string } | null };
-export async function listAlerts(params: { page: number; pageSize: number; status?: OperationalAlert['status'] }): Promise<{ alerts: OperationalAlert[]; total: number; page: number; pageSize: number; totalPages: number }> {
+export async function listAlerts(params: {
+  page: number;
+  pageSize: number;
+  status?: OperationalAlert['status'];
+  type?: OperationalAlert['type'];
+  priority?: OperationalAlert['priority'];
+}): Promise<{ alerts: OperationalAlert[]; total: number; page: number; pageSize: number; totalPages: number }> {
   const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
   if (params.status) query.set('status', params.status);
+  if (params.type) query.set('type', params.type);
+  if (params.priority) query.set('priority', params.priority);
   const response = await fetch(`${apiUrl('/alerts')}?${query.toString()}`, { credentials: 'include' });
   if (!response.ok) return saleError(response, 'Não foi possível consultar os alertas.');
   return (await response.json() as { data: { alerts: OperationalAlert[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
