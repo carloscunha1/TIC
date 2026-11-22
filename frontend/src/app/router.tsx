@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
-import { FoundationPage, NotFoundPage } from '@/app/pages';
+import { NotFoundPage } from '@/app/pages';
+import { DashboardPage } from '@/app/DashboardPage';
 import { ProtectedLayout } from '@/app/ProtectedLayout';
 import { CreateUserPage } from '@/app/CreateUserPage';
 import { EditUserPage } from '@/app/EditUserPage';
@@ -30,6 +31,7 @@ import { SalesPage } from '@/app/SalesPage';
 import { SaleDraftPage } from '@/app/SaleDraftPage';
 import { SaleReturnPage } from '@/app/SaleReturnPage';
 import { AlertsPage } from '@/app/AlertsPage';
+import { ReportsPage } from '@/app/ReportsPage';
 
 export const router = createBrowserRouter([
   {
@@ -76,6 +78,7 @@ export const router = createBrowserRouter([
       { path: '/vendas/:id/editar', element: <SaleDraftPage /> },
       { path: '/vendas/:id/devolucao', element: <SaleReturnPage /> },
       { path: '/alertas', element: <AlertsPage /> },
+      { path: '/relatorios', element: <ReportsPage /> },
       {
         path: '/fornecedores/:id/editar',
         element: <EditSupplierPage />,
@@ -110,7 +113,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/',
-        element: <FoundationPage />,
+        element: <DashboardPage />,
       },
       {
         path: '*',

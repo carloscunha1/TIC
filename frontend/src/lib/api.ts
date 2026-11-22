@@ -276,6 +276,85 @@ export async function markAllAlertsRead(): Promise<void> {
   if (!response.ok) return saleError(response, 'Não foi possível marcar os alertas como lidos.');
 }
 
+export type StockPositionReport = { productId: string; sku: string; product: string; unit: string; stockMode: string; physical: number; available: number; minimum: number; estimatedValue: number; zero: boolean; belowMinimum: boolean };
+export type StockMovementReport = { id: string; date: string; product: string; sku: string; unit: string; type: string; quantity: number; reason: string; lot: string | null; actor: string };
+export type StockValidityReport = { lotId: string; product: string; sku: string; lot: string; expirationDate: string | null; currentQuantity: number; unit: string; status: string };
+export type SupplierEntriesReport = { period: { from: string; to: string }; suppliers: Array<{ supplier: string; entries: number; quantity: number; totalCost: number }>; products: Array<{ product: string; sku: string; quantity: number; totalCost: number; entries: number }> };
+
+async function getReport<T>(path: string, params: Record<string, string | undefined>): Promise<T> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => { if (value) query.set(key, value); });
+  const response = await fetch(`${apiUrl(path)}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível consultar o relatório.');
+  }
+  return response.json().then((body: { data: T }) => body.data);
+}
+
+export function getStockPositionReport(): Promise<StockPositionReport[]> {
+  return getReport('/reports/stock/position', {});
+}
+export function getStockMovementsReport(params: { from?: string; to?: string; page?: number; pageSize?: number }): Promise<{ movements: StockMovementReport[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  return getReport('/reports/stock/movements', { ...params, page: String(params.page ?? 1), pageSize: String(params.pageSize ?? 100) });
+}
+export function getStockValidityReport(): Promise<StockValidityReport[]> {
+  return getReport('/reports/stock/validity', {});
+}
+export function getLowRotationReport(params: { from?: string; to?: string }): Promise<Array<{ productId: string; sku: string; product: string; soldQuantity: number; period: { from: string; to: string } }>> {
+  return getReport('/reports/stock/low-rotation', params);
+}
+export function getSupplierEntriesReport(params: { from?: string; to?: string }): Promise<SupplierEntriesReport> {
+  return getReport('/reports/entries/suppliers', params);
+}
+export type SalesReport = {
+  sales: Array<{ id: string; confirmedAt: string | null; status: string; paymentMethod: string | null; operator: string; customer: string | null; gross: number; liquid: number }>;
+  totals: { gross: number; liquid: number; averageTicket: number; paymentDistribution: Array<{ method: string; value: number }> };
+  products: Array<{ productId: string; sku: string; product: string; quantity: number; liquidValue: number }>;
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+export type LoyaltyReport = {
+  period: { from: string; to: string };
+  totals: { customersRegistered: number; customersActive: number; granted: number; redeemed: number; expired: number; balanceInCirculation: number };
+  ranking: Array<{ customerId: string; customer: string; points: number }>;
+  negativeBalances: Array<{ customerId: string; customer: string; status: string; balance: number }>;
+  history: Array<{ id: string; date: string; customer: string; type: string; points: number; reason: string | null }>;
+};
+export function getSalesReport(params: {
+  from?: string;
+  to?: string;
+  operatorId?: string;
+  paymentMethod?: string;
+  customerId?: string;
+  status?: string;
+  productId?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<SalesReport> {
+  return getReport('/reports/sales', { ...params, page: String(params.page ?? 1), pageSize: String(params.pageSize ?? 20) });
+}
+export function getLoyaltyReport(params: { from?: string; to?: string }): Promise<LoyaltyReport> {
+  return getReport('/reports/loyalty', params);
+}
+export type DashboardReport = {
+  period: { from: string; to: string };
+  stock: { productCount: number; physicalQuantity: number; availableQuantity: number; estimatedValue: number; belowMinimum: number; zero: number; lotsNearExpiration: number; expiredLots: number };
+  operation: { salesCount: number; gross: number; liquid: number; averageTicket: number; entriesCount: number; entriesQuantity: number; entriesCost: number; stockIn: number; stockOut: number; topProducts: Array<{ productId: string; sku: string; product: string; quantity: number }>; leastProducts: Array<{ productId: string; sku: string; product: string; quantity: number }> };
+  loyalty: { customersRegistered: number; customersActive: number; granted: number; redeemed: number; expired: number; balanceInCirculation: number };
+};
+export function getDashboardReport(params: { from?: string; to?: string }): Promise<DashboardReport> {
+  return getReport('/reports/dashboard', params);
+}
+export async function downloadReport(path: string, params: Record<string, string | undefined>): Promise<Blob> {
+  const query = new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, value]) => value)), format: 'csv' });
+  const response = await fetch(`${apiUrl(path)}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Não foi possível exportar o relatório.');
+  return response.blob();
+}
+
 export async function confirmEntry(id: string): Promise<{ entry: EntryView; alreadyConfirmed: boolean }> {
   const response = await fetch(apiUrl(`/entries/${id}/confirm`), { method: 'POST', credentials: 'include' });
   if (!response.ok) return entryError(response, 'Não foi possível confirmar a entrada.');
