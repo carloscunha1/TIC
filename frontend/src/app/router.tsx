@@ -30,6 +30,7 @@ import { SalesPage } from '@/app/SalesPage';
 import { SaleDraftPage } from '@/app/SaleDraftPage';
 import { SaleReturnPage } from '@/app/SaleReturnPage';
 import { AlertsPage } from '@/app/AlertsPage';
+import { ReportsPage } from '@/app/ReportsPage';
 
 export const router = createBrowserRouter([
   {
@@ -76,6 +77,7 @@ export const router = createBrowserRouter([
       { path: '/vendas/:id/editar', element: <SaleDraftPage /> },
       { path: '/vendas/:id/devolucao', element: <SaleReturnPage /> },
       { path: '/alertas', element: <AlertsPage /> },
+      { path: '/relatorios', element: <ReportsPage /> },
       {
         path: '/fornecedores/:id/editar',
         element: <EditSupplierPage />,
