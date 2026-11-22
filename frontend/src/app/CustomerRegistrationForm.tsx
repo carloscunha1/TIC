@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { createCustomer } from '@/lib/api';
+import { digits, maskPhone } from '@/lib/masks';
 
 const schema = z.object({
   name: z.string().trim().min(2, 'Informe o nome do cliente.').max(160),
@@ -14,7 +15,7 @@ type FormValues = z.infer<typeof schema>;
 export function CustomerRegistrationForm({ mode = 'ADMIN', onCreated }: { mode?: 'ADMIN' | 'QUICK'; onCreated?: () => void }) {
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { name: '', phone: '', privacyNoticeAcknowledged: false } });
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => createCustomer(values, mode === 'QUICK'),
+    mutationFn: (values: FormValues) => createCustomer({ ...values, phone: digits(values.phone) }, mode === 'QUICK'),
     onSuccess: () => {
       form.reset();
       onCreated?.();
@@ -27,7 +28,7 @@ export function CustomerRegistrationForm({ mode = 'ADMIN', onCreated }: { mode?:
     {mode === 'QUICK' && <h2 id="customer-registration-title" className="mb-4 text-lg font-semibold">{title}</h2>}
     <form className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900" onSubmit={form.handleSubmit((values) => mutation.mutate(values))} noValidate>
       <div><label htmlFor="customer-name" className="mb-1.5 block text-sm font-medium">Nome *</label><input id="customer-name" autoComplete="name" className="w-full rounded-lg border px-3 py-2.5 dark:border-slate-700 dark:bg-slate-950" {...form.register('name')} />{form.formState.errors.name && <p className="mt-1 text-sm text-red-600" role="alert">{form.formState.errors.name.message}</p>}</div>
-      <div><label htmlFor="customer-phone" className="mb-1.5 block text-sm font-medium">Telefone *</label><input id="customer-phone" type="tel" autoComplete="tel" inputMode="tel" maxLength={20} className="w-full rounded-lg border px-3 py-2.5 dark:border-slate-700 dark:bg-slate-950" {...form.register('phone')} />{form.formState.errors.phone && <p className="mt-1 text-sm text-red-600" role="alert">{form.formState.errors.phone.message}</p>}</div>
+      <div><label htmlFor="customer-phone" className="mb-1.5 block text-sm font-medium">Telefone *</label><input id="customer-phone" type="tel" autoComplete="tel" inputMode="tel" maxLength={15} className="w-full rounded-lg border px-3 py-2.5 dark:border-slate-700 dark:bg-slate-950" {...form.register('phone', { onChange: (event) => { event.target.value = maskPhone(event.target.value); } })} />{form.formState.errors.phone && <p className="mt-1 text-sm text-red-600" role="alert">{form.formState.errors.phone.message}</p>}</div>
       <div><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5" {...form.register('privacyNoticeAcknowledged')} /><span>O cliente recebeu e deu ciência do aviso de privacidade.</span></label>{form.formState.errors.privacyNoticeAcknowledged && <p className="mt-1 text-sm text-red-600" role="alert">{form.formState.errors.privacyNoticeAcknowledged.message}</p>}</div>
       {mutation.isError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{mutation.error.message}</p>}
       {mutation.isSuccess && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700" role="status">Cliente cadastrado e aguardando definição do PIN.</p>}

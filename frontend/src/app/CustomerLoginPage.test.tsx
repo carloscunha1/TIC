@@ -19,7 +19,7 @@ describe('CustomerLoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Olá, Ana');
     expect(await screen.findByText('35 pontos')).toBeInTheDocument();
-    expect(loginCustomer).toHaveBeenCalledWith('5516999999999', '123456');
+    expect(loginCustomer).toHaveBeenCalledWith('16999999999', '123456');
     await user.click(screen.getByRole('button', { name: 'Sair' }));
     expect(logoutCustomer).toHaveBeenCalled();
     expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument();

@@ -18,6 +18,7 @@ import { saleRouter } from './modules/sales/sale.routes.js';
 import { alertRouter } from './modules/alerts/alert.routes.js';
 import { reportRouter } from './modules/reports/report.routes.js';
 import { auditRouter } from './modules/audit/audit.routes.js';
+import { settingsRouter } from './modules/settings/settings.routes.js';
 import { ApiError } from './shared/http/api-error.js';
 import { openApiDocument } from './infrastructure/http/openapi.js';
 
@@ -109,7 +110,7 @@ app.use((request, response, next) => {
   if (origin === frontendOrigin) {
     response.setHeader('Access-Control-Allow-Credentials', 'true');
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Request-Id, Idempotency-Key');
-    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, OPTIONS');
     response.setHeader('Access-Control-Allow-Origin', origin);
     response.setHeader('Vary', 'Origin');
   }
@@ -147,6 +148,7 @@ app.use('/api/v1/sales', saleRouter);
 app.use('/api/v1/alerts', alertRouter);
 app.use('/api/v1/reports', reportRouter);
 app.use('/api/v1/audit', auditRouter);
+app.use('/api/v1/settings', settingsRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({

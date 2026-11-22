@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getCustomerSession, getPublicCustomerLoyalty, loginCustomer, logoutCustomer } from '@/lib/api';
+import { digits, maskPhone } from '@/lib/masks';
 const schema = z.object({ phone: z.string().min(1, 'Informe o telefone.'), pin: z.string().regex(/^\d{6}$/, 'O PIN deve conter seis dígitos.') });
 type FormValues = z.infer<typeof schema>;
 export function CustomerLoginPage() {
@@ -15,7 +16,7 @@ export function CustomerLoginPage() {
     if (existingSession.data) { setName(existingSession.data.name); setAuthenticated(true); }
   }, [existingSession.data]);
   const loyalty = useQuery({ queryKey: ['customer-loyalty'], queryFn: getPublicCustomerLoyalty, enabled: authenticated });
-  const loginMutation = useMutation({ mutationFn: (values: FormValues) => loginCustomer(values.phone, values.pin), onSuccess: async () => { const session = await getCustomerSession(); setName(session.name); setAuthenticated(true); } });
+  const loginMutation = useMutation({ mutationFn: (values: FormValues) => loginCustomer(digits(values.phone), values.pin), onSuccess: async () => { const session = await getCustomerSession(); setName(session.name); setAuthenticated(true); } });
   const logoutMutation = useMutation({ mutationFn: logoutCustomer, onSuccess: () => { setAuthenticated(false); setName(''); loginMutation.reset(); void queryClient.removeQueries({ queryKey: ['customer-loyalty'] }); } });
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema) });
   const historyLabel = {
@@ -31,7 +32,7 @@ export function CustomerLoginPage() {
       {!authenticated ? <>
         <p className="mt-2 text-sm text-slate-600">Entre com seu telefone e PIN de seis dígitos.</p>
         <form className="mt-6 space-y-4" onSubmit={handleSubmit((values) => loginMutation.mutate(values))}>
-          <label className="block text-sm font-medium">Telefone<input {...register('phone')} type="tel" autoComplete="tel" className="mt-1 block w-full rounded-lg border px-3 py-2" /></label>
+          <label className="block text-sm font-medium">Telefone<input {...register('phone', { onChange: (event) => { event.target.value = maskPhone(event.target.value); } })} type="tel" inputMode="tel" maxLength={15} autoComplete="tel" className="mt-1 block w-full rounded-lg border px-3 py-2" /></label>
           {errors.phone && <p role="alert" className="text-sm text-red-700">{errors.phone.message}</p>}
           <label className="block text-sm font-medium">PIN<input {...register('pin')} type="password" inputMode="numeric" autoComplete="current-password" maxLength={6} className="mt-1 block w-full rounded-lg border px-3 py-2" /></label>
           {errors.pin && <p role="alert" className="text-sm text-red-700">{errors.pin.message}</p>}
