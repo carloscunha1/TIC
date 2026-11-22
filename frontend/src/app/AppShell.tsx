@@ -10,6 +10,7 @@ import {
   Package,
   Settings,
   ShoppingCart,
+  ScrollText,
   Sun,
   Users,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ const navigation = [
   { label: 'Política de pontos', icon: Coins, permission: 'loyalty-policy.manage', to: '/fidelidade/politica' },
   { label: 'Operações de pontos', icon: Coins, permission: 'loyalty.read', to: '/fidelidade/operacoes' },
   { label: 'Relatórios', icon: ChartNoAxesCombined, permission: 'reports.read', to: '/relatorios' },
+  { label: 'Auditoria', icon: ScrollText, permission: 'audit.read', to: '/auditoria' },
   { label: 'Usuários', icon: Users, permission: 'users.manage', to: '/usuarios' },
   { label: 'Configurações', icon: Settings, permission: 'settings.manage', to: '/configuracoes' },
 ];

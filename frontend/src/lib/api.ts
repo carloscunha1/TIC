@@ -104,6 +104,41 @@ export async function getPublicCustomerLoyalty(): Promise<PublicCustomerLoyalty>
   if (!response.ok) throw new Error('Não foi possível consultar os pontos.');
   return (await response.json() as { data: PublicCustomerLoyalty }).data;
 }
+
+export type AuditLogView = {
+  id: string;
+  actorType: 'USER' | 'SYSTEM';
+  actor: { id: string; name: string } | null;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  before: unknown;
+  after: unknown;
+  ipAddress: string | null;
+  createdAt: string;
+};
+export async function listAuditLogs(params: {
+  page: number;
+  pageSize: number;
+  actorUserId?: string;
+  action?: string;
+  entity?: string;
+  from?: string;
+  to?: string;
+}): Promise<{ logs: AuditLogView[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const query = new URLSearchParams({ page: String(params.page), pageSize: String(params.pageSize) });
+  if (params.actorUserId) query.set('actorUserId', params.actorUserId);
+  if (params.action) query.set('action', params.action);
+  if (params.entity) query.set('entity', params.entity);
+  if (params.from) query.set('from', params.from);
+  if (params.to) query.set('to', params.to);
+  const response = await fetch(`${apiUrl('/audit')}?${query.toString()}`, { credentials: 'include' });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível consultar a auditoria.');
+  }
+  return (await response.json() as { data: { logs: AuditLogView[]; total: number; page: number; pageSize: number; totalPages: number } }).data;
+}
 export async function logoutCustomer(): Promise<void> {
   const response = await customerAuthRequest('/logout');
   if (!response.ok) throw new Error('Não foi possível encerrar a sessão.');

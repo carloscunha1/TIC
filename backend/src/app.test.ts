@@ -43,4 +43,13 @@ describe('loyalty routes', () => {
     expect(responses.map((response) => response.status)).toEqual([401, 401, 401, 401, 401]);
     expect(responses.every((response) => response.body.code === 'INVALID_SESSION')).toBe(true);
   });
+
+  describe('audit routes', () => {
+    it('requires an authenticated administrative session', async () => {
+      const response = await request(app).get('/api/v1/audit');
+
+      expect(response.status).toBe(401);
+      expect(response.body.code).toBe('INVALID_SESSION');
+    });
+  });
 });
