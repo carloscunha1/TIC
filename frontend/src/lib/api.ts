@@ -78,7 +78,8 @@ export async function startCustomerPinSetup(id: string): Promise<{ setupUrl: str
   return (await response.json() as { data: { setupUrl: string; expiresAt: string } }).data;
 }
 async function customerAuthRequest(path: string, body?: unknown): Promise<Response> {
-  return fetch(apiUrl(`/customer-auth${path}`), { method: path === '/session' ? 'GET' : 'POST', credentials: 'include', ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }) });
+  const method = path === '/session' || path === '/loyalty' ? 'GET' : 'POST';
+  return fetch(apiUrl(`/customer-auth${path}`), { method, credentials: 'include', ...(body === undefined ? {} : { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }) });
 }
 export async function completeCustomerPinSetup(token: string, pin: string): Promise<void> {
   const response = await customerAuthRequest('/pin-setup/complete', { token, pin });
@@ -92,6 +93,16 @@ export async function getCustomerSession(): Promise<{ customerId: string; name: 
   const response = await customerAuthRequest('/session');
   if (!response.ok) throw new Error('Sessão inválida ou expirada.');
   return (await response.json() as { data: { customerId: string; name: string; expiresAt: string } }).data;
+}
+export type PublicCustomerLoyalty = {
+  availablePoints: number;
+  nearExpiration: Array<{ creditId: string; points: number; expiresAt: string }>;
+  history: Array<{ id: string; type: 'CREDIT' | 'REDEMPTION' | 'EXPIRATION' | 'REVERSAL' | 'COMPENSATION'; points: number; createdAt: string }>;
+};
+export async function getPublicCustomerLoyalty(): Promise<PublicCustomerLoyalty> {
+  const response = await customerAuthRequest('/loyalty');
+  if (!response.ok) throw new Error('Não foi possível consultar os pontos.');
+  return (await response.json() as { data: PublicCustomerLoyalty }).data;
 }
 export async function logoutCustomer(): Promise<void> {
   const response = await customerAuthRequest('/logout');

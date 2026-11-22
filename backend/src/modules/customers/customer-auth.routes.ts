@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { requireCustomerAuth } from './customer-auth.middleware.js';
-import { completeCustomerPinSetup, getCustomerSession, loginCustomer, logoutCustomer } from './customer-auth.controller.js';
+import { completeCustomerPinSetup, getCustomerSession, getPublicCustomerLoyalty, loginCustomer, logoutCustomer } from './customer-auth.controller.js';
 export const customerAuthRouter = Router();
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 customerAuthRouter.post('/pin-setup/complete', completeCustomerPinSetup);
 customerAuthRouter.post('/login', loginLimiter, loginCustomer);
 customerAuthRouter.get('/session', requireCustomerAuth, getCustomerSession);
+customerAuthRouter.get('/loyalty', requireCustomerAuth, getPublicCustomerLoyalty);
 customerAuthRouter.post('/logout', logoutCustomer);
