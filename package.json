@@ -2,7 +2,7 @@
   "name": "tic",
   "version": "0.1.0",
   "private": true,
-  "description": "Sistema de gest\u00e3o da Conveni\u00eancia do Posto Paulo VI",
+  "description": "Sistema de gestão da Conveniência do Posto Paulo VI",
   "workspaces": [
     "backend",
     "frontend"
