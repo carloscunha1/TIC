@@ -16,6 +16,7 @@ import { loyaltyRouter } from './modules/loyalty/loyalty.routes.js';
 import { saleRouter } from './modules/sales/sale.routes.js';
 import { alertRouter } from './modules/alerts/alert.routes.js';
 import { reportRouter } from './modules/reports/report.routes.js';
+import { auditRouter } from './modules/audit/audit.routes.js';
 import { ApiError } from './shared/http/api-error.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
@@ -134,6 +135,7 @@ app.use('/api/v1/loyalty', loyaltyRouter);
 app.use('/api/v1/sales', saleRouter);
 app.use('/api/v1/alerts', alertRouter);
 app.use('/api/v1/reports', reportRouter);
+app.use('/api/v1/audit', auditRouter);
 
 app.get('/api/v1/health', (_request, response) => {
   response.status(200).json({
