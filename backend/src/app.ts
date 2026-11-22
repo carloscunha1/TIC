@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import express, { type ErrorRequestHandler, type RequestHandler } from 'express';
 import { ZodError } from 'zod';
+import { apiReference } from '@scalar/express-api-reference';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { userRouter } from './modules/users/user.routes.js';
 import { categoryRouter } from './modules/categories/category.routes.js';
@@ -18,6 +19,7 @@ import { alertRouter } from './modules/alerts/alert.routes.js';
 import { reportRouter } from './modules/reports/report.routes.js';
 import { auditRouter } from './modules/audit/audit.routes.js';
 import { ApiError } from './shared/http/api-error.js';
+import { openApiDocument } from './infrastructure/http/openapi.js';
 
 const requestContext: RequestHandler = (request, response, next) => {
   const receivedRequestId = request.header('x-request-id');
@@ -120,6 +122,15 @@ app.use((request, response, next) => {
 
 app.use(requestContext);
 app.use(express.json());
+app.get('/api/v1/openapi.json', (_request, response) => {
+  response.status(200).json(openApiDocument);
+});
+app.use(
+  '/docs',
+  apiReference({
+    spec: { url: '/api/v1/openapi.json' },
+  }),
+);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/categories', categoryRouter);

@@ -30,6 +30,27 @@ describe('unknown routes', () => {
   });
 });
 
+describe('API documentation', () => {
+  it('serves the OpenAPI document', async () => {
+    const response = await request(app).get('/api/v1/openapi.json');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      openapi: '3.1.0',
+      info: { title: 'TIC API', version: '1.0.0' },
+    });
+    expect(Object.keys(response.body.paths).length).toBeGreaterThan(50);
+  });
+
+  it('serves the Scalar API reference', async () => {
+    const response = await request(app).get('/docs');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.text.toLowerCase()).toContain('scalar');
+  });
+});
+
 describe('loyalty routes', () => {
   it('requires an authenticated administrative session', async () => {
     const responses = await Promise.all([
@@ -43,13 +64,13 @@ describe('loyalty routes', () => {
     expect(responses.map((response) => response.status)).toEqual([401, 401, 401, 401, 401]);
     expect(responses.every((response) => response.body.code === 'INVALID_SESSION')).toBe(true);
   });
+});
 
-  describe('audit routes', () => {
-    it('requires an authenticated administrative session', async () => {
-      const response = await request(app).get('/api/v1/audit');
+describe('audit routes', () => {
+  it('requires an authenticated administrative session', async () => {
+    const response = await request(app).get('/api/v1/audit');
 
-      expect(response.status).toBe(401);
-      expect(response.body.code).toBe('INVALID_SESSION');
-    });
+    expect(response.status).toBe(401);
+    expect(response.body.code).toBe('INVALID_SESSION');
   });
 });

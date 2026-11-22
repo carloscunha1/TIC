@@ -53,6 +53,17 @@ as variáveis `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL` e
 `INITIAL_ADMIN_PASSWORD` estão preenchidas. Usuários existentes nunca são
 alterados.
 
+## Documentação da API
+
+Com o backend em execução, a referência interativa fica disponível em:
+
+- Scalar: `http://localhost:3333/docs`
+- OpenAPI JSON: `http://localhost:3333/api/v1/openapi.json`
+
+As sessões administrativas usam o cookie `tic_session`. A consulta pública
+do cliente usa o cookie `tic_customer_session`. A documentação inclui os
+endpoints existentes, parâmetros, cookies de sessão e respostas padrão.
+
 Para parar o banco:
 
 ```bash
