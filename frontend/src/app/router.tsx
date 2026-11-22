@@ -32,6 +32,7 @@ import { SaleDraftPage } from '@/app/SaleDraftPage';
 import { SaleReturnPage } from '@/app/SaleReturnPage';
 import { AlertsPage } from '@/app/AlertsPage';
 import { ReportsPage } from '@/app/ReportsPage';
+import { SettingsPage } from '@/app/SettingsPage';
 import { AuditPage } from '@/app/AuditPage';
 
 export const router = createBrowserRouter([
@@ -112,6 +113,10 @@ export const router = createBrowserRouter([
       {
         path: '/usuarios/novo',
         element: <CreateUserPage />,
+      },
+      {
+        path: '/configuracoes',
+        element: <SettingsPage />,
       },
       {
         path: '/',

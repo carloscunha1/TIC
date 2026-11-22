@@ -105,6 +105,35 @@ export async function getPublicCustomerLoyalty(): Promise<PublicCustomerLoyalty>
   return (await response.json() as { data: PublicCustomerLoyalty }).data;
 }
 
+export type EstablishmentSettingsView = {
+  id: string | null;
+  name: string;
+  cnpj: string | null;
+  phone: string | null;
+  address: string | null;
+};
+export async function getEstablishmentSettings(): Promise<EstablishmentSettingsView> {
+  const response = await fetch(apiUrl('/settings'), { credentials: 'include' });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível carregar as configurações.');
+  }
+  return (await response.json() as { data: { settings: EstablishmentSettingsView } }).data.settings;
+}
+export async function updateEstablishmentSettings(payload: { name: string; cnpj?: string; phone?: string; address?: string }): Promise<EstablishmentSettingsView> {
+  const response = await fetch(apiUrl('/settings'), {
+    body: JSON.stringify(payload),
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    method: 'PUT',
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as ApiErrorResponse | null;
+    throw new Error(error?.message ?? 'Não foi possível salvar as configurações.');
+  }
+  return (await response.json() as { data: { settings: EstablishmentSettingsView } }).data.settings;
+}
+
 export type AuditLogView = {
   id: string;
   actorType: 'USER' | 'SYSTEM';

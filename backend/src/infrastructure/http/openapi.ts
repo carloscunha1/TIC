@@ -290,5 +290,28 @@ export const openApiDocument = {
         responses: generalResponses,
       }),
     },
+    '/settings': {
+      get: administrativeOperation('Consultar configurações da conveniência', { responses: generalResponses }),
+      put: administrativeOperation('Atualizar configurações da conveniência', {
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name'],
+                properties: {
+                  name: { type: 'string', maxLength: 160 },
+                  cnpj: { type: 'string', maxLength: 18 },
+                  phone: { type: 'string', maxLength: 20 },
+                  address: { type: 'string', maxLength: 500 },
+                },
+              },
+            },
+          },
+        },
+        responses: generalResponses,
+      }),
+    },
   },
 };

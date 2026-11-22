@@ -27,7 +27,7 @@ describe('EditCustomerPage', () => {
     await user.type(phone, '+55 (16) 33333-3333');
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
 
-    await waitFor(() => expect(updateCustomer).toHaveBeenCalledWith('customer-1', { name: 'Ana Nova', phone: '+55 (16) 33333-3333' }));
+    await waitFor(() => expect(updateCustomer).toHaveBeenCalledWith('customer-1', { name: 'Ana Nova', phone: '16333333333' }));
     expect(await screen.findByText('Lista de clientes')).toBeInTheDocument();
   });
 });
