@@ -12,6 +12,8 @@ function repository(overrides: Partial<Record<keyof PrismaReportRepository, unkn
     listSales: jest.fn(async () => [[], 0]),
     listLoyaltyMovements: jest.fn(async () => []),
     listCustomersForLoyalty: jest.fn(async () => []),
+    listDashboardSales: jest.fn(async () => []),
+    listDashboardMovements: jest.fn(async () => []),
     ...overrides,
   } as unknown as PrismaReportRepository;
 }
@@ -122,6 +124,40 @@ describe('ReportService', () => {
       totals: { granted: 30, redeemed: 10, expired: 0, balanceInCirculation: 20 },
       ranking: [{ customerId: 'customer-1', customer: 'Cliente A', points: 30 }],
       negativeBalances: [{ customerId: 'customer-2', customer: 'Cliente B', balance: -5 }],
+    });
+  });
+
+  it('keeps current stock independent of the dashboard period', async () => {
+    const service = new ReportService(repository({
+      listProducts: jest.fn(async () => [{
+        id: 'product-1',
+        sku: 'SKU-1',
+        name: 'Produto A',
+        unit: 'UN',
+        stockMode: 'SIMPLES',
+        cost: { toString: () => '12.50' },
+        minimumStock: { toString: () => '5' },
+        stockBalance: { quantity: { toString: () => '8' } },
+        stockLots: [],
+      }]),
+      listLots: jest.fn(async () => []),
+      listEntries: jest.fn(async () => []),
+      listLoyaltyMovements: jest.fn(async () => []),
+      listCustomersForLoyalty: jest.fn(async () => []),
+      listDashboardSales: jest.fn(async () => []),
+      listDashboardMovements: jest.fn(async () => []),
+    }));
+
+    const first = await service.dashboard({ from: '2026-11-01', to: '2026-11-30' });
+    const second = await service.dashboard({ from: '2026-10-01', to: '2026-10-31' });
+
+    expect(first.stock).toEqual(second.stock);
+    expect(first.stock).toMatchObject({
+      productCount: 1,
+      physicalQuantity: 8,
+      availableQuantity: 8,
+      estimatedValue: 100,
+      belowMinimum: 0,
     });
   });
 });

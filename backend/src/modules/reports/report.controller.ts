@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { movementReportQuerySchema, reportPeriodSchema, salesReportQuerySchema } from './report.schemas.js';
+import { dashboardPeriodSchema, movementReportQuerySchema, reportPeriodSchema, salesReportQuerySchema } from './report.schemas.js';
 import { ReportService, toCsv } from './report.service.js';
 
 const service = new ReportService();
@@ -66,4 +66,10 @@ export async function loyalty(request: Request, response: Response): Promise<voi
     data.ranking.map((item) => [item.customer, item.points, '', '', '']),
     data,
   );
+}
+
+export async function dashboard(request: Request, response: Response): Promise<void> {
+  const query = dashboardPeriodSchema.parse(request.query);
+  const data = await service.dashboard(query);
+  response.status(200).json({ success: true, data, requestId: response.locals.requestId });
 }

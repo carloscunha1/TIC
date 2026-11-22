@@ -25,6 +25,11 @@ export const salesReportQuerySchema = reportPeriodSchema.extend({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+export const dashboardPeriodSchema = z.object({
+  from: dateSchema.optional(),
+  to: dateSchema.optional(),
+});
+
 export type ReportPeriod = z.infer<typeof reportPeriodSchema>;
 export type MovementReportQuery = z.infer<typeof movementReportQuerySchema>;
 export type SalesReportQuery = z.infer<typeof salesReportQuerySchema>;

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../auth/auth.middleware.js';
 import { requirePermission } from '../auth/authorization.middleware.js';
 import { permissions } from '../auth/permissions.js';
-import { lowRotation, loyalty, movements, sales, stockPosition, supplierEntries, validity } from './report.controller.js';
+import { dashboard, lowRotation, loyalty, movements, sales, stockPosition, supplierEntries, validity } from './report.controller.js';
 
 export const reportRouter = Router();
 reportRouter.use(requireAuth, requirePermission(permissions.reportsRead));
@@ -13,3 +13,4 @@ reportRouter.get('/stock/low-rotation', lowRotation);
 reportRouter.get('/entries/suppliers', supplierEntries);
 reportRouter.get('/sales', sales);
 reportRouter.get('/loyalty', loyalty);
+reportRouter.get('/dashboard', requirePermission(permissions.dashboardView), dashboard);

@@ -339,6 +339,15 @@ export function getSalesReport(params: {
 export function getLoyaltyReport(params: { from?: string; to?: string }): Promise<LoyaltyReport> {
   return getReport('/reports/loyalty', params);
 }
+export type DashboardReport = {
+  period: { from: string; to: string };
+  stock: { productCount: number; physicalQuantity: number; availableQuantity: number; estimatedValue: number; belowMinimum: number; zero: number; lotsNearExpiration: number; expiredLots: number };
+  operation: { salesCount: number; gross: number; liquid: number; averageTicket: number; entriesCount: number; entriesQuantity: number; entriesCost: number; stockIn: number; stockOut: number; topProducts: Array<{ productId: string; sku: string; product: string; quantity: number }>; leastProducts: Array<{ productId: string; sku: string; product: string; quantity: number }> };
+  loyalty: { customersRegistered: number; customersActive: number; granted: number; redeemed: number; expired: number; balanceInCirculation: number };
+};
+export function getDashboardReport(params: { from?: string; to?: string }): Promise<DashboardReport> {
+  return getReport('/reports/dashboard', params);
+}
 export async function downloadReport(path: string, params: Record<string, string | undefined>): Promise<Blob> {
   const query = new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, value]) => value)), format: 'csv' });
   const response = await fetch(`${apiUrl(path)}?${query.toString()}`, { credentials: 'include' });

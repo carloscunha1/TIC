@@ -7,8 +7,8 @@ const defaultFrom = () => {
   return date.toISOString().slice(0, 10);
 };
 
-function period(period: ReportPeriod): ReportPeriod {
-  return { from: period.from ?? defaultFrom(), to: period.to ?? new Date().toISOString().slice(0, 10), format: period.format };
+function period(period: ReportPeriod | { from?: string; to?: string }): ReportPeriod {
+  return { from: period.from ?? defaultFrom(), to: period.to ?? new Date().toISOString().slice(0, 10), format: 'format' in period ? period.format : 'json' };
 }
 
 function decimal(value: { toString(): string } | number): number {
@@ -254,6 +254,90 @@ export class ReportService {
         points: movement.pointsDelta,
         reason: movement.reason,
       })),
+    };
+  }
+
+  async dashboard(periodInput: { from?: string; to?: string }) {
+    const input = period(periodInput);
+    const [stock, lots, sales, movements, entries, loyalty] = await Promise.all([
+      this.stockPosition(),
+      this.validity(),
+      this.repository.listDashboardSales(input),
+      this.repository.listDashboardMovements(input),
+      this.repository.listEntries(input),
+      this.loyalty(input),
+    ]);
+    let gross = 0;
+    let liquid = 0;
+    let confirmedSalesCount = 0;
+    const productTotals = new Map<string, { productId: string; sku: string; product: string; quantity: number }>();
+    for (const sale of sales) {
+      if (sale.status === 'CANCELADA' || !sale.confirmedAt) continue;
+      confirmedSalesCount += 1;
+      const grossValue = decimal(sale.total);
+      let returnedValue = 0;
+      for (const item of sale.items) {
+        const returnedQuantity = item.returns
+          .filter((returned) => returned.returnRecord.status === 'CONFIRMADA')
+          .reduce((sum, returned) => sum + decimal(returned.quantity), 0);
+        const netQuantity = decimal(item.quantity) - returnedQuantity;
+        returnedValue += returnedQuantity * decimal(item.unitPrice);
+        const product = productTotals.get(item.productId) ?? {
+          productId: item.productId,
+          sku: item.product.sku,
+          product: item.product.name,
+          quantity: 0,
+        };
+        product.quantity += netQuantity;
+        productTotals.set(item.productId, product);
+      }
+      gross += grossValue;
+      liquid += Math.max(grossValue - returnedValue, 0);
+    }
+    const rankedProducts = [...productTotals.values()].sort((left, right) => right.quantity - left.quantity || left.product.localeCompare(right.product));
+    const entriesQuantity = entries.reduce((sum, entry) => sum + entry.items.reduce((entrySum, item) => entrySum + decimal(item.quantity), 0), 0);
+    const entriesCost = entries.reduce((sum, entry) => sum + entry.items.reduce((entrySum, item) => entrySum + decimal(item.quantity) * decimal(item.unitCost), 0), 0);
+    const entriesCount = entries.length;
+    let stockIn = 0;
+    let stockOut = 0;
+    for (const movement of movements) {
+      const quantity = decimal(movement.quantity);
+      if (['ENTRY', 'ADJUSTMENT_IN', 'RETURN_IN', 'REVERSAL_IN'].includes(movement.type)) stockIn += quantity;
+      if (['EXIT', 'ADJUSTMENT_OUT', 'LOSS', 'RETURN_OUT', 'REVERSAL_OUT'].includes(movement.type)) stockOut += quantity;
+    }
+    return {
+      period: { from: input.from, to: input.to },
+      stock: {
+        productCount: stock.length,
+        physicalQuantity: stock.reduce((sum, item) => sum + item.physical, 0),
+        availableQuantity: stock.reduce((sum, item) => sum + item.available, 0),
+        estimatedValue: stock.reduce((sum, item) => sum + item.estimatedValue, 0),
+        belowMinimum: stock.filter((item) => item.belowMinimum).length,
+        zero: stock.filter((item) => item.zero).length,
+        lotsNearExpiration: lots.filter((item) => item.status === 'PROXIMO_VENCIMENTO').length,
+        expiredLots: lots.filter((item) => item.status === 'VENCIDO').length,
+      },
+      operation: {
+        salesCount: confirmedSalesCount,
+        gross,
+        liquid,
+        averageTicket: confirmedSalesCount > 0 ? liquid / confirmedSalesCount : 0,
+        entriesCount,
+        entriesQuantity,
+        entriesCost,
+        stockIn,
+        stockOut,
+        topProducts: rankedProducts.slice(0, 5),
+        leastProducts: rankedProducts.slice().reverse().slice(0, 5),
+      },
+      loyalty: {
+        customersRegistered: loyalty.totals.customersRegistered,
+        customersActive: loyalty.totals.customersActive,
+        granted: loyalty.totals.granted,
+        redeemed: loyalty.totals.redeemed,
+        expired: loyalty.totals.expired,
+        balanceInCirculation: loyalty.totals.balanceInCirculation,
+      },
     };
   }
 }

@@ -9,6 +9,30 @@ function periodWhere(period: ReportPeriod): { gte?: Date; lte?: Date } {
 }
 
 export class PrismaReportRepository {
+  listDashboardSales(period: ReportPeriod) {
+    return prisma.sale.findMany({
+      where: period.from || period.to ? { confirmedAt: periodWhere(period), status: { not: 'EM_ANDAMENTO' } } : { status: { not: 'EM_ANDAMENTO' } },
+      include: {
+        customer: { select: { id: true, name: true } },
+        operator: { select: { id: true, name: true } },
+        items: {
+          include: {
+            product: { select: { id: true, name: true, sku: true } },
+            returns: { include: { returnRecord: { select: { status: true } } } },
+          },
+        },
+      },
+      orderBy: [{ confirmedAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
+  listDashboardMovements(period: ReportPeriod) {
+    return prisma.stockMovement.findMany({
+      where: period.from || period.to ? { createdAt: periodWhere(period) } : {},
+      include: { product: { select: { id: true, name: true, sku: true } } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  }
   listSales(query: SalesReportQuery) {
     const where = {
       ...(query.operatorId ? { operatorUserId: query.operatorId } : {}),
